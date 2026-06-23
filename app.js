@@ -1,5 +1,4 @@
-// Asegúrate de que esta URL sea la de tu ÚLTIMA implementación en Apps Script
-const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
+const API_URL = 'URL_DE_TU_NUEVO_DESPLIEGUE';
 
 let appState = {
     userEmail: null,
@@ -8,11 +7,9 @@ let appState = {
     headers: []
 };
 
-// ================= 1. AUTENTICACIÓN Y SEGURIDAD =================
-
 window.onload = () => {
-    if (localStorage.getItem('savedEmail') && localStorage.getItem('savedPass')) {
-        document.getElementById('log-email').value = localStorage.getItem('savedEmail');
+    if (localStorage.getItem('savedUser') && localStorage.getItem('savedPass')) {
+        document.getElementById('log-username').value = localStorage.getItem('savedUser');
         document.getElementById('log-pass').value = localStorage.getItem('savedPass');
         document.getElementById('remember-me').checked = true;
     }
@@ -83,32 +80,32 @@ async function registrarUsuario() {
 }
 
 async function iniciarSesion() {
-    const email = document.getElementById('log-email').value;
+    const username = document.getElementById('log-username').value.trim().toUpperCase();
     const pass = document.getElementById('log-pass').value;
     const remember = document.getElementById('remember-me').checked;
     const msg = document.getElementById('login-msg');
 
     msg.style.color = "var(--text)";
-    msg.innerText = "Validando credenciales encriptadas...";
+    msg.innerText = "Validando credenciales...";
     
     try {
-        const payload = { action: 'loginSeguro', email: email, password: pass };
+        const payload = { action: 'loginSeguro', username: username, password: pass };
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
         const json = await res.json();
 
         if(json.status === 'success') {
-            appState.userEmail = json.data.email;
-            appState.userName = json.data.nombre;
+            appState.userEmail = json.data.email; 
+            appState.userName = json.data.username;
             
             if(remember) {
-                localStorage.setItem('savedEmail', email);
+                localStorage.setItem('savedUser', username);
                 localStorage.setItem('savedPass', pass);
             } else {
-                localStorage.removeItem('savedEmail');
+                localStorage.removeItem('savedUser');
                 localStorage.removeItem('savedPass');
             }
             
-            document.getElementById('display-user').innerText = `Hola, ${appState.userName}`;
+            document.getElementById('display-user').innerText = `Usuario Activo: ${appState.userName}`;
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('user-info').classList.remove('hidden');
             document.getElementById('dashboard-section').classList.remove('hidden');
@@ -123,14 +120,16 @@ async function iniciarSesion() {
 
 function cerrarSesion() {
     appState.userEmail = null;
+    appState.userName = null;
     document.getElementById('auth-section').classList.remove('hidden');
     document.getElementById('dashboard-section').classList.add('hidden');
     document.getElementById('user-info').classList.add('hidden');
     document.getElementById('login-msg').innerText = '';
     document.getElementById('log-pass').value = '';
+    
+    // Limpiar tabla al salir
+    renderTabla([]);
 }
-
-// ================= 2. GESTIÓN DE DRIVE Y BD =================
 
 async function procesarFormulario(e) {
     e.preventDefault();
@@ -153,7 +152,7 @@ async function procesarFormulario(e) {
 
         const payload = {
             action: 'subirArchivo',
-            email: appState.userEmail,
+            email: appState.userEmail, 
             carpetaPadre: document.getElementById('carpeta-padre').value.trim(),
             subCarpeta: document.getElementById('sub-carpeta').value.trim(),
             anio: document.getElementById('anio-doc').value,
@@ -170,7 +169,7 @@ async function procesarFormulario(e) {
             msg.style.color = "var(--success)";
             msg.innerText = "Documento registrado y asegurado en Drive.";
             document.getElementById('upload-form').reset();
-            cargarDatos();
+            cargarDatos(); 
         } else { throw new Error(json.message); }
 
     } catch (error) {
@@ -188,8 +187,6 @@ function fileToBase64(file) {
     });
 }
 
-// ================= 3. RENDERIZADO Y FILTROS =================
-
 async function cargarDatos() {
     try {
         const payload = { action: 'getRegistros' };
@@ -200,7 +197,9 @@ async function cargarDatos() {
             appState.headers = json.data.headers;
             appState.rawData = json.data.filas;
             extraerCategorias(appState.rawData);
-            renderTabla(appState.rawData);
+            
+            // Renderizar tabla vacía al inicio
+            renderTabla([]);
         }
     } catch (error) { console.error("Error cargando DB:", error); }
 }
@@ -219,6 +218,12 @@ function renderTabla(filas) {
     const theadDOM = document.querySelector('#data-table thead');
     const tbodyDOM = document.querySelector('#data-table tbody');
 
+    if (filas.length === 0) {
+        theadDOM.innerHTML = '';
+        tbodyDOM.innerHTML = '';
+        return;
+    }
+
     theadDOM.innerHTML = '<tr>' + appState.headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
     tbodyDOM.innerHTML = filas.map(fila => {
         return '<tr>' + fila.map(celda => {
@@ -231,12 +236,18 @@ function renderTabla(filas) {
 }
 
 function aplicarFiltros() {
-    const searchText = document.getElementById('search-text').value.toLowerCase();
+    const searchText = document.getElementById('search-text').value.toLowerCase().trim();
     const filterTema = document.getElementById('filter-tema').value;
     const indexTema = appState.headers.indexOf('Tema_Categoria');
 
+    // Ocultar datos si no hay búsqueda
+    if (searchText === '') {
+        renderTabla([]);
+        return;
+    }
+
     const filtradas = appState.rawData.filter(fila => {
-        const matchText = searchText === '' || fila.some(celda => String(celda).toLowerCase().includes(searchText));
+        const matchText = fila.some(celda => String(celda).toLowerCase().includes(searchText));
         const matchTema = filterTema === 'ALL' || (indexTema !== -1 && String(fila[indexTema]) === filterTema);
         return matchText && matchTema;
     });
