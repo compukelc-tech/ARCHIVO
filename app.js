@@ -1,4 +1,4 @@
-const API_URL = 'URL_DE_TU_NUEVO_DESPLIEGUE';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
 
 let appState = {
     userEmail: null,
