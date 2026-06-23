@@ -3,40 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Datos Documental</title>
+    <title>Sistema de Base de Datos</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Sistema de Base de Datos Documental</h1>
+        <h1>Base de Datos Documental</h1>
         <div id="user-info" class="hidden">
-            <span id="display-email"></span> | Rol: <span id="display-role"></span>
-            <button onclick="cerrarSesion()">Salir</button>
+            <span id="display-user"></span> | <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
         </div>
     </header>
 
     <main>
-        <section id="login-section">
-            <h2>Acceso al Sistema</h2>
-            <p>Ingrese su correo para validar sus permisos en la plataforma.</p>
-            <input type="email" id="email-input" placeholder="correo@ejemplo.com">
-            <button id="btn-login" onclick="iniciarSesion()">Validar Acceso</button>
-            <p id="login-msg" class="msg"></p>
+        <section id="auth-section">
+            <div class="auth-tabs">
+                <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
+                <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
+            </div>
+
+            <div id="login-box" class="auth-box">
+                <h2>Acceso al Sistema</h2>
+                <input type="email" id="log-email" placeholder="Correo electrónico">
+                <div class="pass-container">
+                    <input type="password" id="log-pass" placeholder="Contraseña">
+                    <button type="button" onclick="togglePass('log-pass')">👁️</button>
+                </div>
+                <div class="auth-options">
+                    <label><input type="checkbox" id="remember-me"> Recordarme</label>
+                    <a href="#" onclick="alert('Contacte al administrador para resetear la clave.')">¿Olvidó su clave?</a>
+                </div>
+                <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
+                <p id="login-msg" class="msg"></p>
+            </div>
+
+            <div id="register-box" class="auth-box hidden">
+                <h2>Nuevo Usuario</h2>
+                <input type="email" id="reg-email" placeholder="Correo electrónico" required>
+                <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+                <input type="number" id="reg-doc" placeholder="Documento de Identidad" required>
+                <input type="text" id="reg-cargo" placeholder="Cargo" required>
+                
+                <div class="pass-container">
+                    <input type="password" id="reg-pass" placeholder="Contraseña" oninput="validarChecklist()" required>
+                    <button type="button" onclick="togglePass('reg-pass')">👁️</button>
+                </div>
+                <div class="pass-container">
+                    <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
+                    <button type="button" onclick="togglePass('reg-pass-conf')">👁️</button>
+                </div>
+                
+                <ul id="pass-checklist">
+                    <li id="chk-mayus">❌ Al menos una letra mayúscula</li>
+                    <li id="chk-num">❌ Al menos un número</li>
+                    <li id="chk-esp">❌ Al menos un carácter especial (!@#$%^&*)</li>
+                    <li id="chk-match">❌ Las contraseñas coinciden</li>
+                </ul>
+
+                <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Crear Cuenta</button>
+                <p id="reg-msg" class="msg"></p>
+            </div>
         </section>
 
         <section id="dashboard-section" class="hidden">
-            
             <div class="card">
-                <h3>Subir Nuevo Documento</h3>
+                <h3>Subir Documento (Carpetas Anidadas)</h3>
                 <form id="upload-form" onsubmit="procesarFormulario(event)">
                     <div class="form-group">
-                        <input type="text" id="nombre-asignado" placeholder="Nombre Asignado (Ej: Acta de Entrega)" required>
+                        <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
+                        <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas 2026)" required>
+                    </div>
+                    <div class="form-group">
                         <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
                         <input type="text" id="tema-cat" placeholder="Tema / Categoría" required>
                     </div>
                     <div class="form-group">
                         <input type="file" id="file-input" required>
-                        <button type="submit" id="btn-upload">Subir y Registrar</button>
+                        <button type="submit" id="btn-upload" class="btn-primary">Subir Archivo a Drive</button>
                     </div>
                     <p id="upload-msg" class="msg"></p>
                 </form>
@@ -45,12 +87,7 @@
             <div class="card">
                 <h3>Búsqueda Inteligente</h3>
                 <div class="filters">
-                    <input type="text" id="search-text" placeholder="Buscar por nombre de archivo o carpeta..." oninput="aplicarFiltros()">
-                    <select id="filter-year" onchange="aplicarFiltros()">
-                        <option value="ALL">Todos los Años</option>
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                    </select>
+                    <input type="text" id="search-text" placeholder="Buscar..." oninput="aplicarFiltros()">
                     <select id="filter-tema" onchange="aplicarFiltros()">
                         <option value="ALL">Todas las Categorías</option>
                     </select>
@@ -59,16 +96,12 @@
 
             <div class="table-container">
                 <table id="data-table">
-                    <thead>
-                        </thead>
-                    <tbody>
-                        </tbody>
+                    <thead></thead>
+                    <tbody></tbody>
                 </table>
             </div>
-
         </section>
     </main>
-
     <script src="app.js"></script>
 </body>
 </html>
