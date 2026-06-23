@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Base de Datos</title>
+    <title>Base de Datos Documental</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -23,7 +23,7 @@
 
             <div id="login-box" class="auth-box">
                 <h2>Acceso al Sistema</h2>
-                <input type="email" id="log-email" placeholder="Correo electrónico">
+                <input type="text" id="log-username" placeholder="Usuario Asignado (Ej: KELMER1929)" style="text-transform: uppercase;">
                 <div class="pass-container">
                     <input type="password" id="log-pass" placeholder="Contraseña">
                     <button type="button" onclick="togglePass('log-pass')">👁️</button>
@@ -40,7 +40,7 @@
                 <h2>Nuevo Usuario</h2>
                 <input type="email" id="reg-email" placeholder="Correo electrónico" required>
                 <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
-                <input type="number" id="reg-doc" placeholder="Documento de Identidad" required>
+                <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de Identidad (Sin puntos ni letras)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
                 <input type="text" id="reg-cargo" placeholder="Cargo" required>
                 
                 <div class="pass-container">
@@ -87,7 +87,7 @@
             <div class="card">
                 <h3>Búsqueda Inteligente</h3>
                 <div class="filters">
-                    <input type="text" id="search-text" placeholder="Buscar..." oninput="aplicarFiltros()">
+                    <input type="text" id="search-text" placeholder="Escriba para visualizar documentos..." oninput="aplicarFiltros()">
                     <select id="filter-tema" onchange="aplicarFiltros()">
                         <option value="ALL">Todas las Categorías</option>
                     </select>
