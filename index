@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Datos Documental</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Sistema de Base de Datos Documental</h1>
+        <div id="user-info" class="hidden">
+            <span id="display-email"></span> | Rol: <span id="display-role"></span>
+            <button onclick="cerrarSesion()">Salir</button>
+        </div>
+    </header>
+
+    <main>
+        <section id="login-section">
+            <h2>Acceso al Sistema</h2>
+            <p>Ingrese su correo para validar sus permisos en la plataforma.</p>
+            <input type="email" id="email-input" placeholder="correo@ejemplo.com">
+            <button id="btn-login" onclick="iniciarSesion()">Validar Acceso</button>
+            <p id="login-msg" class="msg"></p>
+        </section>
+
+        <section id="dashboard-section" class="hidden">
+            
+            <div class="card">
+                <h3>Subir Nuevo Documento</h3>
+                <form id="upload-form" onsubmit="procesarFormulario(event)">
+                    <div class="form-group">
+                        <input type="text" id="nombre-asignado" placeholder="Nombre Asignado (Ej: Acta de Entrega)" required>
+                        <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
+                        <input type="text" id="tema-cat" placeholder="Tema / Categoría" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="file" id="file-input" required>
+                        <button type="submit" id="btn-upload">Subir y Registrar</button>
+                    </div>
+                    <p id="upload-msg" class="msg"></p>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Búsqueda Inteligente</h3>
+                <div class="filters">
+                    <input type="text" id="search-text" placeholder="Buscar por nombre de archivo o carpeta..." oninput="aplicarFiltros()">
+                    <select id="filter-year" onchange="aplicarFiltros()">
+                        <option value="ALL">Todos los Años</option>
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                    </select>
+                    <select id="filter-tema" onchange="aplicarFiltros()">
+                        <option value="ALL">Todas las Categorías</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="data-table">
+                    <thead>
+                        </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
