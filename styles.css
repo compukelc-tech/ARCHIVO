@@ -23,7 +23,6 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
 .btn-primary:hover:not(:disabled) { opacity: 0.9; }
 .btn-logout { background-color: var(--error); color: white; border: none; cursor: pointer; padding: 0.4rem 0.8rem; }
 
-/* Componentes de Autenticación */
 #auth-section { max-width: 400px; margin: 0 auto; }
 .auth-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .auth-tabs button { flex: 1; background: var(--border); border: none; cursor: pointer; padding: 0.8rem; }
@@ -38,12 +37,10 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
 .ok { color: var(--success); }
 .msg { font-size: 0.9rem; margin-top: 1rem; text-align: center; font-weight: bold; }
 
-/* Dashboard Formularios */
 .form-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .form-group > input { flex: 1; min-width: 200px; }
 .filters { display: flex; gap: 1rem; width: 100%; }
 
-/* Tablas */
 .table-container { overflow-x: auto; background: var(--surface); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
