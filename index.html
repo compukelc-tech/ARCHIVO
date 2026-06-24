@@ -1,419 +1,158 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COMPUKELC - Sistema de Gestión</title>
-  <style>
-    :root {
-      --primary-color: #2563eb;
-      --bg-color: #f8fafc;
-      --bg-card: #ffffff;
-      --text-color: #1e293b;
-      --border-color: #e2e8f0;
-      --success-color: #16a34a;
-      --error-color: #dc2626;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-    header { background-color: var(--primary-color); padding: 1rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .hidden { display: none !important; }
-    .card, .auth-box { background: var(--bg-card); padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
-    #auth-section { max-width: 400px; margin: 0 auto; }
-    .auth-tabs { display: flex; }
-    .auth-tabs button { flex: 1; background: var(--bg-color); border: none; padding: 0.8rem; cursor: pointer; margin-bottom: 1rem; }
-    .auth-tabs button.active { background: var(--bg-card); border-bottom: 2px solid var(--primary-color); font-weight: bold; }
-    input, select { width: 100%; padding: 0.6rem; margin: 0.25rem 0; border: 1px solid var(--border-color); border-radius: 4px; }
-    .pass-container { display: flex; align-items: center; }
-    .pass-container button { padding: 0.6rem; margin-left: 0.5rem; background: #e2e8f0; border: none; cursor: pointer; }
-    .auth-options { display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 0.5rem; }
-    .btn-primary { background-color: var(--primary-color); color: white; border: none; padding: 0.6rem; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 1rem; }
-    .btn-primary:disabled { background-color: #94a3b8; cursor: not-allowed; }
-    .btn-primary:hover:not(:disabled) { opacity: 0.9; }
-    .btn-logout { background-color: transparent; color: white; border: 1px solid white; padding: 0.4rem 0.8rem; cursor: pointer; border-radius: 4px; }
-    #pass-checklist { list-style: none; padding: 0; font-size: 0.85rem; color: #64748b; margin-top: 1rem; }
-    #pass-checklist li { margin-bottom: 0.3rem; }
-    #pass-checklist li.ok { color: var(--success-color); }
-    .msg { font-size: 0.9rem; margin-top: 1rem; text-align: center; font-weight: bold; }
-    .form-group { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .form-group input, .form-group button { flex: 1; min-width: 200px; }
-    .filters { display: flex; gap: 1rem; margin-bottom: 1rem; }
-    .table-container { overflow-x: auto; background: var(--bg-card); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
-    th { background-color: #f1f5f9; }
-    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: var(--bg-card); width: 90%; max-width: 900px; max-height: 90vh; overflow-y: auto; border-radius: 8px; padding: 2rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
-    .close-btn { background: var(--error-color); color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .admin-section { margin-bottom: 2rem; }
-    .admin-section h3 { margin-bottom: 1rem; color: var(--primary-color); }
-    .btn-action { padding: 0.4rem 0.8rem; margin: 0.1rem; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
-    .btn-approve { background-color: var(--success-color); }
-    .btn-deny { background-color: var(--error-color); }
-    .btn-pause { background-color: #f59e0b; color: black; }
-    .btn-block { background-color: #475569; }
-  </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>COMPUKELC - Sistema de Gestión</title>
+ <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>COMPUKELC - Sistema de Gestión</h1>
-    <div id="user-info" class="hidden">
-      <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()" style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: white;">≡</button>
-      <span id="display-user"></span>
-      <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
-    </div>
-  </header>
-  <main>
-    <section id="auth-section">
-      <div class="auth-tabs">
-        <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
-        <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
-      </div>
-      <div id="login-box" class="auth-box">
-        <h2>Acceso al Sistema</h2>
-        <input type="text" id="log-username" placeholder="Usuario Asignado (Ej: KELMER1929)" style="text-transform: uppercase;">
-        <div class="pass-container">
-          <input type="password" id="log-pass" placeholder="Contraseña">
-          <button type="button" onclick="togglePass('log-pass')">👁</button>
-        </div>
-        <div class="auth-options">
-          <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
-          <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
-        </div>
-        <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
-        <p id="login-msg" class="msg"></p>
-      </div>
-      <div id="register-box" class="auth-box hidden">
-        <h2>Nuevo Registro</h2>
-        <input type="email" id="reg-email" placeholder="Correo electrónico" required>
-        <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
-        <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de Identidad (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
-        <input type="text" id="reg-cargo" placeholder="Cargo" required>
-        <div class="pass-container">
-          <input type="password" id="reg-pass" placeholder="Contraseña" oninput="validarChecklist()" required>
-          <button type="button" onclick="togglePass('reg-pass')">👁</button>
-        </div>
-        <div class="pass-container">
-          <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
-          <button type="button" onclick="togglePass('reg-pass-conf')">👁</button>
-        </div>
-        <ul id="pass-checklist">
-          <li id="chk-mayus">Al menos una letra mayúscula</li>
-          <li id="chk-num">Al menos un número</li>
-          <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
-          <li id="chk-match">Las contraseñas coinciden</li>
-        </ul>
-        <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Registrar</button>
-        <p id="reg-msg" class="msg"></p>
-      </div>
-    </section>
-    <section id="dashboard-section" class="hidden">
-      <div class="card">
-        <h3>Registro de Documentos</h3>
-        <form id="upload-form" onsubmit="procesarFormulario(event)">
-          <div class="form-group">
-            <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
-            <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas2026)" required>
-          </div>
-          <div class="form-group">
-            <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
-            <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
-          </div>
-          <div class="form-group">
-            <input type="file" id="file-input" required>
-            <button type="submit" id="btn-upload" class="btn-primary">Subir Documento</button>
-          </div>
-          <p id="upload-msg" class="msg"></p>
-        </form>
-      </div>
-      <div class="card">
-        <h3>Base de Datos Documental</h3>
-        <div class="filters">
-          <input type="text" id="search-text" placeholder="Escriba el nombre o año para buscar..." oninput="aplicarFiltros()">
-          <select id="filter-tema" onchange="aplicarFiltros()">
-            <option value="ALL">Filtro por Categoría</option>
-          </select>
-        </div>
-        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros arriba para buscar y visualizar documentos específicos.</p>
-        <div class="table-container">
-          <table id="data-table">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
-  <!-- MODAL DEL PANEL DE ADMINISTRADOR -->
-  <div id="admin-modal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Panel de Superadministrador</h2>
-        <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
-      </div>
-      <div class="admin-section">
-        <h3>Solicitudes Pendientes de Acceso</h3>
-        <div class="table-container">
-          <table id="table-pendientes">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Cargo</th>
-                <th>Asignar Rol</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="admin-section">
-        <h3>Gestión de Usuarios Activos</h3>
-        <div class="table-container">
-          <table id="table-gestionados">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Estado Actual</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+ <header>
+ <h1>COMPUKELC - Sistema de Gestión</h1>
+ <div id="user-info" class="hidden">
+ <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()"
+style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer;
+color: white;">≡</button>
+ <span id="display-user"></span>
+ <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
+ </div>
+ </header>
+ <main>
+ <section id="auth-section">
+ <div class="auth-tabs">
+ <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar
+Sesión</button>
+ <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
+ </div>
+ <div id="login-box" class="auth-box">
+ <h2>Acceso al Sistema</h2>
+ <input type="text" id="log-username" placeholder="Usuario Asignado (Ej:
+KELMER1929)" style="text-transform: uppercase;">
+ <div class="pass-container">
+ <input type="password" id="log-pass" placeholder="Contraseña">
+ <button type="button" onclick="togglePass('log-pass')"> </button>
+ </div>
+ <div class="auth-options">
+ <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
+ <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
+ </div>
+ <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
+ <p id="login-msg" class="msg"></p>
+ </div>
+ <div id="register-box" class="auth-box hidden">
+ <h2>Nuevo Registro</h2>
+ <input type="email" id="reg-email" placeholder="Correo electrónico" required>
+ <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+ <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de
+Identidad (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+ <input type="text" id="reg-cargo" placeholder="Cargo" required>
 
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
+ <div class="pass-container">
+ <input type="password" id="reg-pass" placeholder="Contraseña"
+oninput="validarChecklist()" required>
+ <button type="button" onclick="togglePass('reg-pass')"> </button>
+ </div>
+ <div class="pass-container">
+ <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña"
+oninput="validarChecklist()" required>
+ <button type="button" onclick="togglePass('reg-pass-conf')"> </button>
+ </div>
+ <ul id="pass-checklist">
+ <li id="chk-mayus">Al menos una letra mayúscula</li>
+ <li id="chk-num">Al menos un número</li>
+ <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
+ <li id="chk-match">Las contraseñas coinciden</li>
+ </ul>
+ <button id="btn-register" onclick="registrarUsuario()" class="btn-primary"
+disabled>Registrar</button>
+ <p id="reg-msg" class="msg"></p>
+ </div>
+ </section>
+ <section id="dashboard-section" class="hidden">
+ <div class="card">
+ <h3>Registro de Documentos</h3>
+ <form id="upload-form" onsubmit="procesarFormulario(event)">
+ <div class="form-group">
+ <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej:
+Proveedores)" required>
+ <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas
+2026)" required>
+ </div>
+ <div class="form-group">
+ <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
+ <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
+ </div>
+ <div class="form-group">
+ <input type="file" id="file-input" required>
+ <button type="submit" id="btn-upload" class="btn-primary">Subir
+Documento</button>
+ </div>
+ <p id="upload-msg" class="msg"></p>
+ </form>
+ </div>
+ <div class="card">
+ <h3>Base de Datos Documental</h3>
+ <div class="filters">
+ <input type="text" id="search-text" placeholder="Escriba el nombre o año para
+buscar..." oninput="aplicarFiltros()">
+ <select id="filter-tema" onchange="aplicarFiltros()">
+ <option value="ALL">Filtro por Categoría</option>
+ </select>
+ </div>
+ <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros
+arriba para buscar y visualizar documentos específicos.</p>
+ <div class="table-container">
+ <table id="data-table">
+ <thead></thead>
+ <tbody></tbody>
+ </table>
+ </div>
+ </div>
+ </section>
+ </main>
+ <!-- MODAL DEL PANEL DE ADMINISTRADOR -->
+ <div id="admin-modal" class="modal hidden">
+ <div class="modal-content">
+ <div class="modal-header">
+ <h2>Panel de Superadministrador</h2>
+ <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
+ </div>
 
-    let userEmail = null;
-    let userName = null;
-    // Identidad de la sesión activa, en memoria (no en localStorage).
-    // Antes el panel de admin usaba localStorage.getItem('savedUser'), que
-    // solo existía si se marcaba "Recordar usuario" y nunca se borraba al
-    // cerrar sesión: podía quedar apuntando al usuario de una sesión anterior.
-    let currentUsername = null;
-    let currentPassword = null;
-    let rawData = [];
-    let headers = [];
-    let _pendientesCache = [];
-    let _gestionadosCache = [];
-
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    window.onload = () => {
-      if (localStorage.getItem('savedUser')) {
-        document.getElementById('log-username').value = localStorage.getItem('savedUser');
-        document.getElementById('remember-me').checked = true;
-      }
-    };
-
-    function toggleAuth(type) {
-      document.getElementById('login-box').classList.toggle('hidden', type !== 'login');
-      document.getElementById('register-box').classList.toggle('hidden', type !== 'register');
-      document.getElementById('tab-login').classList.toggle('active', type === 'login');
-      document.getElementById('tab-register').classList.toggle('active', type === 'register');
-    }
-
-    function togglePass(id) {
-      const input = document.getElementById(id);
-      input.type = input.type === 'password' ? 'text' : 'password';
-    }
-
-    function validarChecklist() {
-      const pass = document.getElementById('reg-pass').value;
-      const passConf = document.getElementById('reg-pass-conf').value;
-      const rules = {
-        'chk-mayus': /[A-Z]/.test(pass),
-        'chk-num': /[0-9]/.test(pass),
-        'chk-esp': /[!@#$%^&*(),.?":{}|<>]/.test(pass),
-        'chk-match': pass !== '' && pass === passConf
-      };
-      let allValid = true;
-      for (const [id, isValid] of Object.entries(rules)) {
-        const el = document.getElementById(id);
-        if (isValid) { el.classList.add('ok'); }
-        else { el.classList.remove('ok'); allValid = false; }
-      }
-      document.getElementById('btn-register').disabled = !allValid;
-    }
-
-    async function registrarUsuario() {
-      const btn = document.getElementById('btn-register');
-      const msg = document.getElementById('reg-msg');
-      btn.disabled = true;
-      msg.style.color = "var(--text-color)";
-      msg.textContent = "Registrando de forma segura...";
-      const payload = {
-        action: 'registrarUsuario',
-        email: document.getElementById('reg-email').value,
-        nombre: document.getElementById('reg-nombre').value,
-        documento: document.getElementById('reg-doc').value,
-        cargo: document.getElementById('reg-cargo').value,
-        password: document.getElementById('reg-pass').value
-      };
-      try {
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-        if (json.status === 'success') {
-          msg.style.color = "var(--success-color)";
-          msg.textContent = `Registro exitoso. Tu usuario es: ${json.data.username}. Pendiente de aprobación.`;
-          setTimeout(() => toggleAuth('login'), 3000);
-        } else { throw new Error(json.message); }
-      } catch (error) {
-        msg.style.color = "var(--error-color)";
-        msg.textContent = "Error: " + error.message;
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    async function iniciarSesion() {
-      const username = document.getElementById('log-username').value.toUpperCase();
-      const password = document.getElementById('log-pass').value;
-      const msgLabel = document.getElementById('login-msg');
-      msgLabel.style.color = "var(--text-color)";
-      msgLabel.textContent = "Validando credenciales...";
-      try {
-        const payload = { action: 'loginSeguro', username: username, password: password };
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-        if (json.status === 'success') {
-          if (document.getElementById('remember-me').checked) {
-            localStorage.setItem('savedUser', username);
-          } else {
-            localStorage.removeItem('savedUser');
-          }
-          currentUsername = username;
-          currentPassword = password;
-          localStorage.setItem('userRole', json.data.rol);
-          userEmail = json.data.email;
-          userName = json.data.nombre;
-          document.getElementById('display-user').textContent = `Usuario: ${userName}`;
-          document.getElementById('auth-section').classList.add('hidden');
-          document.getElementById('user-info').classList.remove('hidden');
-          document.getElementById('dashboard-section').classList.remove('hidden');
-          if (json.data.rol === 'Superadmin') {
-            document.getElementById('btn-admin-panel').classList.remove('hidden');
-          }
-          cargarDatos();
-        } else { throw new Error(json.message); }
-      } catch (error) {
-        msgLabel.style.color = "var(--error-color)";
-        msgLabel.textContent = "Error: " + error.message;
-      }
-    }
-
-    async function enviarRecuperacion() {
-      const email = prompt("Ingresa tu correo electrónico registrado en COMPUKELC:");
-      if (!email) return;
-      try {
-        const payload = { action: 'recuperarPassword', email: email };
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-        if (json.status === 'success') {
-          alert("Si el correo existe en el sistema, te hemos enviado tus credenciales de acceso.");
-        } else {
-          alert("Error: " + json.message);
-        }
-      } catch (err) {
-        alert("Error de red al intentar recuperar.");
-      }
-    }
-
-    function cerrarSesion() {
-      userEmail = null; userName = null;
-      currentUsername = null; currentPassword = null;
-      document.getElementById('auth-section').classList.remove('hidden');
-      document.getElementById('dashboard-section').classList.add('hidden');
-      document.getElementById('user-info').classList.add('hidden');
-      document.getElementById('btn-admin-panel').classList.add('hidden');
-      document.getElementById('login-msg').textContent = '';
-      document.getElementById('log-pass').value = '';
-      localStorage.removeItem('userRole');
-    }
-
-    async function procesarFormulario(e) {
-      e.preventDefault();
-      const fileInput = document.getElementById('file-input');
-      if (fileInput.files.length === 0) return;
-      const file = fileInput.files[0];
-      const btn = document.getElementById('btn-upload');
-      const msg = document.getElementById('upload-msg');
-      btn.disabled = true;
-      msg.style.color = "var(--text-color)";
-      msg.textContent = "Preparando archivo...";
-      try {
-        const base64Data = await fileToBase64(file);
-        msg.textContent = "Subiendo al servidor...";
-        const payload = {
-          action: 'subirArchivo',
-          username: currentUsername,
-          password: currentPassword,
-          carpetaPadre: document.getElementById('carpeta-padre').value,
-          subCarpeta: document.getElementById('sub-carpeta').value,
-          anio: document.getElementById('anio-doc').value,
-          temaCategoria: document.getElementById('tema-cat').value,
-          fileName: file.name,
-          mimeType: file.type,
-          fileData: base64Data.split(',')[1]
-        };
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-        if (json.status === 'success') {
-          msg.style.color = "var(--success-color)";
-          msg.textContent = "Documento registrado y asegurado.";
-          document.getElementById('upload-form').reset();
-          cargarDatos();
-        } else { throw new Error(json.message); }
-      } catch (error) {
-        msg.style.color = "var(--error-color)";
-        msg.textContent = "Error: " + error.message;
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function cargarDatos() {
-      try {
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getRegistros', username: currentUsername, password: currentPassword }) });
-        const json = await response.json();
-        if (json.status === 'success') {
-          headers = json.data.headers;
-          rawData = json.data.filas;
-          extraerCategorias(rawData);
-          renderTabla([]);
-        }
-      } catch (error) { console.error("Error cargando DB:", error); }
-    }
-
-    function extraerCategorias(filas) {
-      const select = document.getElementById('filter-tema');
-      const idx = 3;
-      const temas = new Set(filas.map(f => f[idx]));
-      select.innerHTML = '<option value="ALL">Filtro por Categoría</option>';
-      temas.forEach(tema => {
-        if (tema) select.innerHTML += `<option value="${escapeHtml(tema)}">${escapeHtml(tema)}</option>`;
-      });
-    }
-
-    function renderTabla(filas) {
-      const thead = document.querySelector('#data-table thead');
-      const tbody = document.query
+ <div class="admin-section">
+ <h3>Solicitudes Pendientes de Acceso</h3>
+ <div class="table-container">
+ <table id="table-pendientes">
+ <thead>
+ <tr>
+ <th>Nombre</th>
+ <th>Usuario</th>
+ <th>Cargo</th>
+ <th>Asignar Rol</th>
+ <th>Acciones</th>
+ </tr>
+ </thead>
+ <tbody></tbody>
+ </table>
+ </div>
+ </div>
+ <div class="admin-section">
+ <h3>Gestión de Usuarios Activos</h3>
+ <div class="table-container">
+ <table id="table-gestionados">
+ <thead>
+ <tr>
+ <th>Nombre</th>
+ <th>Usuario</th>
+ <th>Estado Actual</th>
+ <th>Acciones</th>
+ </tr>
+ </thead>
+ <tbody></tbody>
+ </table>
+ </div>
+ </div>
+ </div>
+ </div>
+ <script src="app.js"></script>
+</body>
+</html>
