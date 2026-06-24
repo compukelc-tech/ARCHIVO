@@ -3,7 +3,11 @@ let userEmail = null;
 let userName = null;
 let rawData = [];
 let headers = [];
-let streamGlobal = null; // Variable global para la cámara
+
+// Variables globales para el escáner multipágina
+let streamGlobal = null;
+let pdfDocument = null; 
+let paginasEscaneadas = 0;
 
 window.onload = () => {
     if (localStorage.getItem('savedUser')) {
@@ -144,121 +148,64 @@ function cerrarSesion() {
     document.getElementById('login-msg').textContent = '';
     document.getElementById('log-pass').value = '';
     localStorage.removeItem('userRole');
-    detenerCamara(); // Apagar cámara si quedó encendida
+    detenerCamara(); 
 }
 
-/* ====== LÓGICA DEL ESCÁNER MÓVIL ====== */
-async function iniciarCamara() {
-    document.getElementById('scanner-container').classList.remove('hidden');
-    const video = document.getElementById('video-preview');
-    
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' }
-        });
-        video.srcObject = stream;
-        streamGlobal = stream;
-    } catch (err) {
-        alert("Error al acceder a la cámara. Revisa los permisos: " + err.message);
+/* ====== VALIDACIÓN COMPARTIDA DE METADATOS ====== */
+function obtenerMetadatosFormulario() {
+    const carpeta = document.getElementById('carpeta-padre').value.trim();
+    const subCarpeta = document.getElementById('sub-carpeta').value.trim();
+    const anio = document.getElementById('anio-doc').value.trim();
+    const tema = document.getElementById('tema-cat').value.trim();
+
+    if (!carpeta || !subCarpeta || !anio || !tema) {
+        throw new Error("Por favor, llena los 4 campos de 'Atributos del Documento' antes de subir.");
     }
+    return { carpeta, subCarpeta, anio, tema };
 }
 
-function detenerCamara() {
-    if (streamGlobal) {
-        streamGlobal.getTracks().forEach(track => track.stop());
-    }
-    document.getElementById('scanner-container').classList.add('hidden');
-    document.getElementById('scanner-msg').textContent = '';
-}
-
-async function capturarYSubirPDF() {
-    const video = document.getElementById('video-preview');
-    const canvas = document.getElementById('canvas-capture');
-    const msg = document.getElementById('scanner-msg');
-    
-    if (!streamGlobal) return;
-
-    msg.style.color = "var(--text-color)";
-    msg.textContent = "Procesando documento...";
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-    const { jsPDF } = window.jspdf;
-    
-    const orientacion = canvas.width > canvas.height ? 'l' : 'p'; 
-    const doc = new jsPDF(orientacion, 'px', [canvas.width, canvas.height]);
-    
-    doc.addImage(imageData, 'JPEG', 0, 0, canvas.width, canvas.height);
-    
-    const pdfBase64 = doc.output('datauristring');
-    const base64Puro = pdfBase64.split(',')[1];
-
-    const carpeta = document.getElementById('carpeta-padre').value || 'Físicos';
-    const subCarpeta = document.getElementById('sub-carpeta').value || 'Escaneos';
-    const anio = document.getElementById('anio-doc').value || new Date().getFullYear();
-    const tema = document.getElementById('tema-cat').value || 'Escaneo Móvil';
-    const fileName = `Escaneo_${new Date().getTime()}.pdf`;
-
-    const payload = {
-        action: 'subirArchivo',
-        email: userEmail,
-        carpetaPadre: carpeta,
-        subCarpeta: subCarpeta,
-        anio: anio,
-        temaCategoria: tema,
-        fileName: fileName,
-        mimeType: 'application/pdf',
-        fileData: base64Puro
-    };
-
-    try {
-        msg.textContent = "Subiendo documento PDF a la base de datos...";
-        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await response.json();
-
-        if (json.status === 'success') {
-            msg.style.color = "var(--success-color)";
-            msg.textContent = "Documento escaneado y guardado correctamente.";
-            cargarDatos();
-            setTimeout(detenerCamara, 2500);
-        } else {
-            throw new Error(json.message);
-        }
-    } catch (error) {
-        msg.style.color = "var(--error-color)";
-        msg.textContent = "Error: " + error.message;
-    }
-}
-/* ======================================= */
-
-async function procesarFormulario(e) {
-    e.preventDefault();
-    const fileInput = document.getElementById('file-input');
-    if (fileInput.files.length === 0) return;
-
-    const file = fileInput.files[0];
-    const btn = document.getElementById('btn-upload');
+function mostrarMensajeSubida(tipo, texto) {
+    const container = document.getElementById('upload-msg-container');
     const msg = document.getElementById('upload-msg');
+    container.style.display = 'block';
+    
+    if (tipo === 'exito') {
+        container.style.backgroundColor = '#dcfce7';
+        msg.style.color = 'var(--success-color)';
+    } else if (tipo === 'error') {
+        container.style.backgroundColor = '#fee2e2';
+        msg.style.color = 'var(--error-color)';
+    } else {
+        container.style.backgroundColor = '#f1f5f9';
+        msg.style.color = 'var(--text-color)';
+    }
+    msg.textContent = texto;
+}
 
-    btn.disabled = true;
-    msg.style.color = "var(--text-color)";
-    msg.textContent = "Preparando archivo...";
-
+/* ====== LÓGICA DE SUBIDA LOCAL (OPCIÓN A) ====== */
+async function procesarSubidaLocal() {
     try {
+        const meta = obtenerMetadatosFormulario();
+        const fileInput = document.getElementById('file-input');
+        
+        if (fileInput.files.length === 0) {
+            throw new Error("Selecciona un archivo desde tu dispositivo.");
+        }
+
+        const file = fileInput.files[0];
+        const btn = document.getElementById('btn-upload-local');
+        btn.disabled = true;
+        mostrarMensajeSubida('info', "Preparando y subiendo archivo local...");
+
         const base64Data = await fileToBase64(file);
-        msg.textContent = "Subiendo al servidor...";
         
         const payload = {
             action: 'subirArchivo',
             email: userEmail,
-            carpetaPadre: document.getElementById('carpeta-padre').value,
-            subCarpeta: document.getElementById('sub-carpeta').value,
-            anio: document.getElementById('anio-doc').value,
-            temaCategoria: document.getElementById('tema-cat').value,
+            carpetaPadre: meta.carpeta,
+            subCarpeta: meta.subCarpeta,
+            anio: meta.anio,
+            temaCategoria: meta.tema,
             fileName: file.name,
             mimeType: file.type,
             fileData: base64Data.split(',')[1]
@@ -268,16 +215,14 @@ async function procesarFormulario(e) {
         const json = await response.json();
 
         if (json.status === 'success') {
-            msg.style.color = "var(--success-color)";
-            msg.textContent = "Documento registrado y asegurado.";
-            document.getElementById('upload-form').reset();
+            mostrarMensajeSubida('exito', "¡Archivo local guardado exitosamente en la Base de Datos!");
+            fileInput.value = ""; // Limpiar input
             cargarDatos();
         } else { throw new Error(json.message); }
     } catch (error) {
-        msg.style.color = "var(--error-color)";
-        msg.textContent = "Error: " + error.message;
+        mostrarMensajeSubida('error', "Error: " + error.message);
     } finally {
-        btn.disabled = false;
+        document.getElementById('btn-upload-local').disabled = false;
     }
 }
 
@@ -289,6 +234,123 @@ function fileToBase64(file) {
         reader.readAsDataURL(file);
     });
 }
+
+/* ====== LÓGICA DEL ESCÁNER MÓVIL (OPCIÓN B) ====== */
+async function iniciarCamara() {
+    document.getElementById('scanner-container').classList.remove('hidden');
+    const video = document.getElementById('video-preview');
+    
+    // Reiniciar valores multipágina
+    pdfDocument = null;
+    paginasEscaneadas = 0;
+    document.getElementById('page-count').textContent = paginasEscaneadas;
+    document.getElementById('upload-msg-container').style.display = 'none';
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }
+        });
+        video.srcObject = stream;
+        streamGlobal = stream;
+    } catch (err) {
+        alert("Error al acceder a la cámara. Revisa permisos: " + err.message);
+    }
+}
+
+function detenerCamara() {
+    if (streamGlobal) {
+        streamGlobal.getTracks().forEach(track => track.stop());
+    }
+    document.getElementById('scanner-container').classList.add('hidden');
+    pdfDocument = null;
+    paginasEscaneadas = 0;
+}
+
+function capturarPagina() {
+    if (!streamGlobal) return;
+    
+    const video = document.getElementById('video-preview');
+    const canvas = document.getElementById('canvas-capture');
+    
+    // COMPRESIÓN: Limitar resolución máxima para no crear PDFs de 50MB
+    const MAX_WIDTH = 1200; 
+    let width = video.videoWidth;
+    let height = video.videoHeight;
+    
+    if (width > MAX_WIDTH) {
+        height = Math.floor(height * (MAX_WIDTH / width));
+        width = MAX_WIDTH;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, width, height);
+    
+    // COMPRESIÓN: Formato JPEG con calidad al 50% (0.5)
+    const imageData = canvas.toDataURL('image/jpeg', 0.5); 
+    
+    const { jsPDF } = window.jspdf;
+    const orientacion = width > height ? 'l' : 'p'; 
+
+    // Si es la primera hoja, inicializar el PDF. Si no, agregar nueva página.
+    if (paginasEscaneadas === 0) {
+        pdfDocument = new jsPDF(orientacion, 'px', [width, height]);
+        pdfDocument.addImage(imageData, 'JPEG', 0, 0, width, height);
+    } else {
+        pdfDocument.addPage([width, height], orientacion);
+        pdfDocument.addImage(imageData, 'JPEG', 0, 0, width, height);
+    }
+
+    paginasEscaneadas++;
+    document.getElementById('page-count').textContent = paginasEscaneadas;
+}
+
+async function subirPDFMultiPagina() {
+    try {
+        const meta = obtenerMetadatosFormulario();
+        
+        if (paginasEscaneadas === 0 || !pdfDocument) {
+            throw new Error("No has capturado ninguna página aún. Usa 'Capturar Hoja'.");
+        }
+
+        const btn = document.getElementById('btn-upload-pdf');
+        btn.disabled = true;
+        mostrarMensajeSubida('info', "Generando PDF y subiendo a la nube (Puede tardar unos segundos)...");
+
+        const pdfBase64 = pdfDocument.output('datauristring');
+        const base64Puro = pdfBase64.split(',')[1];
+        const fileName = `Documento_Escaneado_${new Date().getTime()}.pdf`;
+
+        const payload = {
+            action: 'subirArchivo',
+            email: userEmail,
+            carpetaPadre: meta.carpeta,
+            subCarpeta: meta.subCarpeta,
+            anio: meta.anio,
+            temaCategoria: meta.tema,
+            fileName: fileName,
+            mimeType: 'application/pdf',
+            fileData: base64Puro
+        };
+
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if (json.status === 'success') {
+            mostrarMensajeSubida('exito', `¡PDF de ${paginasEscaneadas} hojas guardado exitosamente!`);
+            cargarDatos();
+            setTimeout(detenerCamara, 3000);
+        } else {
+            throw new Error(json.message);
+        }
+    } catch (error) {
+        mostrarMensajeSubida('error', "Error: " + error.message);
+    } finally {
+        document.getElementById('btn-upload-pdf').disabled = false;
+    }
+}
+/* ==================================================== */
 
 async function cargarDatos() {
     try {
