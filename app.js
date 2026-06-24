@@ -209,18 +209,19 @@ async function cargarDatos() {
             headers = json.data.headers;
             rawData = json.data.filas;
             extraerCategorias(rawData);
-            renderTabla(rawData);
+            // IMPORTANTE: Arrancamos renderizando un array vacío para ocultar los datos iniciales
+            renderTabla([]);
         }
     } catch (error) { console.error("Error cargando DB:", error); }
 }
 
 function extraerCategorias(filas) {
     const select = document.getElementById('filter-tema');
-    const idx = headers.indexOf('Tema/Categoria');
-    if (idx === -1) return;
+    // Índice 3 corresponde estáticamente a "Tema_Categoria" según nuestra nueva estructura
+    const idx = 3; 
 
     const temas = new Set(filas.map(f => f[idx]));
-    select.innerHTML = '<option value="ALL">Todas las Categorías</option>';
+    select.innerHTML = '<option value="ALL">Filtro por Categoría</option>';
     temas.forEach(tema => {
         if(tema) select.innerHTML += `<option value="${tema}">${tema}</option>`;
     });
@@ -235,11 +236,16 @@ function renderTabla(filas) {
 
     thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
     
+    if(filas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align: center; color: gray;">Use la barra de búsqueda o el filtro para encontrar documentos.</td></tr>`;
+        return;
+    }
+    
     filas.forEach(fila => {
         const tr = document.createElement('tr');
         tr.innerHTML = fila.map(celda => {
             if (typeof celda === 'string' && celda.startsWith('http')) {
-                return `<td><a href="${celda}" target="_blank">Ver</a></td>`;
+                return `<td><a href="${celda}" target="_blank" style="color: blue; text-decoration: underline;">Abrir Archivo</a></td>`;
             }
             return `<td>${celda}</td>`;
         }).join('');
@@ -250,13 +256,21 @@ function renderTabla(filas) {
 function aplicarFiltros() {
     const texto = document.getElementById('search-text').value.toLowerCase();
     const temaFiltro = document.getElementById('filter-tema').value;
-    const idxTema = headers.indexOf('Tema/Categoria');
+    
+    // Si no han escrito nada y el filtro está en ALL, se vuelve a esconder todo
+    if (texto === '' && temaFiltro === 'ALL') {
+        renderTabla([]);
+        return;
+    }
+
+    const idxTema = 3; // Índice fijo de Tema_Categoria
 
     const filasFiltradas = rawData.filter(fila => {
-        const coincideTexto = fila.some(celda => String(celda).toLowerCase().includes(texto));
+        const coincideTexto = texto === '' ? true : fila.some(celda => String(celda).toLowerCase().includes(texto));
         const coincideTema = temaFiltro === 'ALL' || String(fila[idxTema]) === temaFiltro;
         return coincideTexto && coincideTema;
     });
+    
     renderTabla(filasFiltradas);
 }
 
