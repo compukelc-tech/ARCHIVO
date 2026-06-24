@@ -1,16 +1,12 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
-
-let appState = {
-    userEmail: null,
-    userName: null,
-    rawData: [],
-    headers: []
-};
+const API_URL = 'AQUI_TU_ENLACE_REAL_DE_APPS_SCRIPT';
+let userEmail = null;
+let userName = null;
+let rawData = [];
+let headers = [];
 
 window.onload = () => {
-    if (localStorage.getItem('savedUser') && localStorage.getItem('savedPass')) {
+    if (localStorage.getItem('savedUser')) {
         document.getElementById('log-username').value = localStorage.getItem('savedUser');
-        document.getElementById('log-pass').value = localStorage.getItem('savedPass');
         document.getElementById('remember-me').checked = true;
     }
 };
@@ -29,32 +25,30 @@ function togglePass(id) {
 
 function validarChecklist() {
     const pass = document.getElementById('reg-pass').value;
-    const conf = document.getElementById('reg-pass-conf').value;
+    const passConf = document.getElementById('reg-pass-conf').value;
     
-    const hasMayus = /[A-Z]/.test(pass);
-    const hasNum = /[0-9]/.test(pass);
-    const hasEsp = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
-    const match = pass === conf && pass.length > 0;
-
-    const setStatus = (id, isValid, text) => {
-        const el = document.getElementById(id);
-        el.innerHTML = isValid ? `✅ ${text}` : `❌ ${text}`;
-        el.className = isValid ? 'ok' : '';
+    const rules = {
+        'chk-mayus': /[A-Z]/.test(pass),
+        'chk-num': /[0-9]/.test(pass),
+        'chk-esp': /[!@#$%^&*(),.?":{}|<>]/.test(pass),
+        'chk-match': pass !== '' && pass === passConf
     };
 
-    setStatus('chk-mayus', hasMayus, 'Al menos una letra mayúscula');
-    setStatus('chk-num', hasNum, 'Al menos un número');
-    setStatus('chk-esp', hasEsp, 'Al menos un carácter especial (!@#$%^&*)');
-    setStatus('chk-match', match, 'Las contraseñas coinciden');
-
-    document.getElementById('btn-register').disabled = !(hasMayus && hasNum && hasEsp && match);
+    let allValid = true;
+    for (const [id, isValid] of Object.entries(rules)) {
+        const el = document.getElementById(id);
+        if (isValid) { el.classList.add('ok'); } 
+        else { el.classList.remove('ok'); allValid = false; }
+    }
+    document.getElementById('btn-register').disabled = !allValid;
 }
 
 async function registrarUsuario() {
     const btn = document.getElementById('btn-register');
     const msg = document.getElementById('reg-msg');
     btn.disabled = true;
-    msg.innerText = "Registrando de forma segura...";
+    msg.style.color = "var(--text-color)";
+    msg.textContent = "Registrando de forma segura...";
 
     const payload = {
         action: 'registrarUsuario',
@@ -66,191 +60,282 @@ async function registrarUsuario() {
     };
 
     try {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-        const json = await res.json();
-        
-        if(json.status === 'success') {
-            alert(`Registro exitoso. Tu nombre de usuario generado es: ${json.data.username}`);
-            toggleAuth('login');
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if (json.status === 'success') {
+            msg.style.color = "var(--success-color)";
+            msg.textContent = `Registro exitoso. Tu usuario es: ${json.data.username}. Pendiente de aprobación.`;
+            setTimeout(() => toggleAuth('login'), 3000);
         } else { throw new Error(json.message); }
     } catch (error) {
-        msg.style.color = "var(--error)";
-        msg.innerText = error.message;
-    } finally { btn.disabled = false; }
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Error: " + error.message;
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 async function iniciarSesion() {
-    const username = document.getElementById('log-username').value.trim().toUpperCase();
-    const pass = document.getElementById('log-pass').value;
-    const remember = document.getElementById('remember-me').checked;
-    const msg = document.getElementById('login-msg');
+    const username = document.getElementById('log-username').value.toUpperCase();
+    const password = document.getElementById('log-pass').value;
+    const msgLabel = document.getElementById('login-msg');
 
-    msg.style.color = "var(--text)";
-    msg.innerText = "Validando credenciales...";
-    
+    msgLabel.style.color = "var(--text-color)";
+    msgLabel.textContent = "Validando credenciales...";
+
     try {
-        const payload = { action: 'loginSeguro', username: username, password: pass };
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-        const json = await res.json();
+        const payload = { action: 'loginSeguro', username: username, password: password };
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
 
-        if(json.status === 'success') {
-            appState.userEmail = json.data.email; 
-            appState.userName = json.data.username;
-            
-            if(remember) {
+        if (json.status === 'success') {
+            if (document.getElementById('remember-me').checked) {
                 localStorage.setItem('savedUser', username);
-                localStorage.setItem('savedPass', pass);
             } else {
                 localStorage.removeItem('savedUser');
-                localStorage.removeItem('savedPass');
             }
-            
-            document.getElementById('display-user').innerText = `Usuario Activo: ${appState.userName}`;
+            localStorage.setItem('userRole', json.data.rol);
+            userEmail = json.data.email;
+            userName = json.data.nombre;
+
+            document.getElementById('display-user').textContent = `Usuario: ${userName}`;
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('user-info').classList.remove('hidden');
             document.getElementById('dashboard-section').classList.remove('hidden');
-            
+
+            if(json.data.rol === 'Superadmin') {
+                document.getElementById('btn-admin-panel').classList.remove('hidden');
+            }
             cargarDatos();
         } else { throw new Error(json.message); }
     } catch (error) {
-        msg.style.color = "var(--error)";
-        msg.innerText = error.message;
+        msgLabel.style.color = "var(--error-color)";
+        msgLabel.textContent = "Error: " + error.message;
+    }
+}
+
+async function enviarRecuperacion() {
+    const email = prompt("Ingresa tu correo electrónico registrado en COMPUKELC:");
+    
+    if(!email) return;
+
+    try {
+        const payload = { action: 'recuperarPassword', email: email }; 
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if(json.status === 'success') {
+            alert("Si el correo existe en el sistema, te hemos enviado tus credenciales de acceso.");
+        } else { 
+            alert("Error: " + json.message); 
+        }
+    } catch (err) { 
+        alert("Error de red al intentar recuperar."); 
     }
 }
 
 function cerrarSesion() {
-    appState.userEmail = null;
-    appState.userName = null;
+    userEmail = null; userName = null;
     document.getElementById('auth-section').classList.remove('hidden');
     document.getElementById('dashboard-section').classList.add('hidden');
     document.getElementById('user-info').classList.add('hidden');
-    document.getElementById('login-msg').innerText = '';
+    document.getElementById('btn-admin-panel').classList.add('hidden');
+    document.getElementById('login-msg').textContent = '';
     document.getElementById('log-pass').value = '';
-    
-    // Limpiar tabla al salir
-    renderTabla([]);
+    localStorage.removeItem('userRole');
 }
 
 async function procesarFormulario(e) {
     e.preventDefault();
     const fileInput = document.getElementById('file-input');
-    if (!fileInput.files.length) return;
+    if (fileInput.files.length === 0) return;
 
     const file = fileInput.files[0];
     const btn = document.getElementById('btn-upload');
     const msg = document.getElementById('upload-msg');
 
     btn.disabled = true;
-    msg.style.color = "var(--text)";
-    msg.innerText = "Convirtiendo archivo para transporte seguro...";
+    msg.style.color = "var(--text-color)";
+    msg.textContent = "Preparando archivo...";
 
     try {
-        const base64String = await fileToBase64(file);
-        const rawBase64 = base64String.split(',')[1];
-
-        msg.innerText = "Estructurando carpetas y subiendo a Drive...";
-
+        const base64Data = await fileToBase64(file);
+        msg.textContent = "Subiendo al servidor...";
+        
         const payload = {
             action: 'subirArchivo',
-            email: appState.userEmail, 
-            carpetaPadre: document.getElementById('carpeta-padre').value.trim(),
-            subCarpeta: document.getElementById('sub-carpeta').value.trim(),
+            email: userEmail,
+            carpetaPadre: document.getElementById('carpeta-padre').value,
+            subCarpeta: document.getElementById('sub-carpeta').value,
             anio: document.getElementById('anio-doc').value,
             temaCategoria: document.getElementById('tema-cat').value,
             fileName: file.name,
             mimeType: file.type,
-            base64Data: rawBase64
+            fileData: base64Data.split(',')[1]
         };
 
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-        const json = await res.json();
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
 
         if (json.status === 'success') {
-            msg.style.color = "var(--success)";
-            msg.innerText = "Documento registrado y asegurado en Drive.";
+            msg.style.color = "var(--success-color)";
+            msg.textContent = "Documento registrado y asegurado.";
             document.getElementById('upload-form').reset();
-            cargarDatos(); 
+            cargarDatos();
         } else { throw new Error(json.message); }
-
     } catch (error) {
-        msg.style.color = "var(--error)";
-        msg.innerText = "Error: " + error.message;
-    } finally { btn.disabled = false; }
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Error: " + error.message;
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
     });
 }
 
 async function cargarDatos() {
     try {
-        const payload = { action: 'getRegistros' };
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
-        const json = await res.json();
-
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getRegistros' }) });
+        const json = await response.json();
         if (json.status === 'success') {
-            appState.headers = json.data.headers;
-            appState.rawData = json.data.filas;
-            extraerCategorias(appState.rawData);
-            
-            // Renderizar tabla vacía al inicio
-            renderTabla([]);
+            headers = json.data.headers;
+            rawData = json.data.filas;
+            extraerCategorias(rawData);
+            renderTabla(rawData);
         }
     } catch (error) { console.error("Error cargando DB:", error); }
 }
 
 function extraerCategorias(filas) {
-    const selectTema = document.getElementById('filter-tema');
-    const indexTema = appState.headers.indexOf('Tema_Categoria'); 
-    if (indexTema === -1) return;
+    const select = document.getElementById('filter-tema');
+    const idx = headers.indexOf('Tema/Categoria');
+    if (idx === -1) return;
 
-    const temasUnicos = new Set(filas.map(f => f[indexTema]).filter(t => t));
-    selectTema.innerHTML = '<option value="ALL">Todas las Categorías</option>';
-    temasUnicos.forEach(tema => { selectTema.innerHTML += `<option value="${tema}">${tema}</option>`; });
+    const temas = new Set(filas.map(f => f[idx]));
+    select.innerHTML = '<option value="ALL">Todas las Categorías</option>';
+    temas.forEach(tema => {
+        if(tema) select.innerHTML += `<option value="${tema}">${tema}</option>`;
+    });
 }
 
 function renderTabla(filas) {
-    const theadDOM = document.querySelector('#data-table thead');
-    const tbodyDOM = document.querySelector('#data-table tbody');
+    const thead = document.querySelector('#data-table thead');
+    const tbody = document.querySelector('#data-table tbody');
+    thead.innerHTML = ''; tbody.innerHTML = '';
 
-    if (filas.length === 0) {
-        theadDOM.innerHTML = '';
-        tbodyDOM.innerHTML = '';
-        return;
-    }
+    if (headers.length === 0) return;
 
-    theadDOM.innerHTML = '<tr>' + appState.headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-    tbodyDOM.innerHTML = filas.map(fila => {
-        return '<tr>' + fila.map(celda => {
+    thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    
+    filas.forEach(fila => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = fila.map(celda => {
             if (typeof celda === 'string' && celda.startsWith('http')) {
                 return `<td><a href="${celda}" target="_blank">Ver</a></td>`;
             }
             return `<td>${celda}</td>`;
-        }).join('') + '</tr>';
-    }).join('');
+        }).join('');
+        tbody.appendChild(tr);
+    });
 }
 
 function aplicarFiltros() {
-    const searchText = document.getElementById('search-text').value.toLowerCase().trim();
-    const filterTema = document.getElementById('filter-tema').value;
-    const indexTema = appState.headers.indexOf('Tema_Categoria');
+    const texto = document.getElementById('search-text').value.toLowerCase();
+    const temaFiltro = document.getElementById('filter-tema').value;
+    const idxTema = headers.indexOf('Tema/Categoria');
 
-    // Ocultar datos si no hay búsqueda
-    if (searchText === '') {
-        renderTabla([]);
+    const filasFiltradas = rawData.filter(fila => {
+        const coincideTexto = fila.some(celda => String(celda).toLowerCase().includes(texto));
+        const coincideTema = temaFiltro === 'ALL' || String(fila[idxTema]) === temaFiltro;
+        return coincideTexto && coincideTema;
+    });
+    renderTabla(filasFiltradas);
+}
+
+// PANEL DE ADMINISTRACIÓN
+
+function abrirPanelAdmin() {
+    document.getElementById('admin-modal').classList.remove('hidden');
+    cargarUsuariosAdmin();
+}
+
+function cerrarPanelAdmin() {
+    document.getElementById('admin-modal').classList.add('hidden');
+}
+
+async function cargarUsuariosAdmin() {
+    const adminUser = localStorage.getItem('savedUser');
+    if (!adminUser) return;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'getUsuariosAdmin', adminUser: adminUser })
+        });
+        
+        const json = await response.json();
+        
+        if (json.status === 'success') {
+            renderTablaPendientes(json.data.pendientes);
+            renderTablaGestionados(json.data.gestionados);
+        } else { alert("Error al cargar panel: " + json.message); }
+    } catch (error) { console.error("Error de conexión:", error); }
+}
+
+function renderTablaPendientes(usuarios) {
+    const tbody = document.querySelector('#table-pendientes tbody');
+    tbody.innerHTML = '';
+    if(usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay solicitudes pendientes</td></tr>';
         return;
     }
-
-    const filtradas = appState.rawData.filter(fila => {
-        const matchText = fila.some(celda => String(celda).toLowerCase().includes(searchText));
-        const matchTema = filterTema === 'ALL' || (indexTema !== -1 && String(fila[indexTema]) === filterTema);
-        return matchText && matchTema;
+    usuarios.forEach(usr => {
+        tbody.innerHTML += `<tr>
+            <td>${usr.nombre}</td><td><strong>${usr.username}</strong></td><td>${usr.cargo}</td>
+            <td>
+                <button class="btn-action btn-approve" onclick="ejecutarAccionUsuario('${usr.username}', 'Activo')">Activar</button>
+                <button class="btn-action btn-deny" onclick="ejecutarAccionUsuario('${usr.username}', 'Denegado')">Denegar</button>
+            </td></tr>`;
     });
+}
 
-    renderTabla(filtradas);
+function renderTablaGestionados(usuarios) {
+    const tbody = document.querySelector('#table-gestionados tbody');
+    tbody.innerHTML = '';
+    if(usuarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay usuarios activos gestionados</td></tr>';
+        return;
+    }
+    usuarios.forEach(usr => {
+        tbody.innerHTML += `<tr>
+            <td>${usr.nombre}</td><td><strong>${usr.username}</strong></td><td>${usr.estado}</td>
+            <td>
+                <button class="btn-action btn-pause" onclick="ejecutarAccionUsuario('${usr.username}', 'Pausado')">Pausar</button>
+                <button class="btn-action btn-block" onclick="ejecutarAccionUsuario('${usr.username}', 'Bloqueado')">Bloquear</button>
+                <button class="btn-action btn-deny" onclick="ejecutarAccionUsuario('${usr.username}', 'Eliminado')">Eliminar</button>
+                ${usr.estado !== 'Activo' ? `<button class="btn-action btn-approve" onclick="ejecutarAccionUsuario('${usr.username}', 'Activo')">Reactivar</button>` : ''}
+            </td></tr>`;
+    });
+}
+
+async function ejecutarAccionUsuario(targetUsername, nuevoEstado) {
+    if (!confirm(`¿Estás seguro de marcar al usuario ${targetUsername} como ${nuevoEstado}?`)) return;
+    const adminUser = localStorage.getItem('savedUser');
+    
+    try {
+        const payload = { action: 'adminGestionUsuario', adminUser: adminUser, targetUser: targetUsername, nuevoEstado: nuevoEstado };
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if(json.status === 'success') { cargarUsuariosAdmin(); } 
+        else { alert("Error: " + json.message); }
+    } catch (error) { alert("Error de red al ejecutar acción."); }
 }
