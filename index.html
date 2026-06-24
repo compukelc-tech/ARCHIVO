@@ -87,11 +87,12 @@
             <div class="card">
                 <h3>Base de Datos Documental</h3>
                 <div class="filters">
-                    <input type="text" id="search-text" placeholder="Escriba para visualizar documentos..." oninput="aplicarFiltros()">
+                    <input type="text" id="search-text" placeholder="Escriba el nombre o año para buscar..." oninput="aplicarFiltros()">
                     <select id="filter-tema" onchange="aplicarFiltros()">
-                        <option value="ALL">Todas las Categorías</option>
+                        <option value="ALL">Filtro por Categoría</option>
                     </select>
                 </div>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros arriba para buscar y visualizar documentos específicos.</p>
                 <div class="table-container">
                     <table id="data-table">
                         <thead></thead>
