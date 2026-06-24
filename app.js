@@ -272,7 +272,7 @@ function capturarPagina() {
     const video = document.getElementById('video-preview');
     const canvas = document.getElementById('canvas-capture');
     
-    // COMPRESIÓN: Limitar resolución máxima para no crear PDFs de 50MB
+    // COMPRESIÓN: Limitar resolución máxima
     const MAX_WIDTH = 1200; 
     let width = video.videoWidth;
     let height = video.videoHeight;
@@ -287,13 +287,12 @@ function capturarPagina() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, width, height);
     
-    // COMPRESIÓN: Formato JPEG con calidad al 50% (0.5)
+    // COMPRESIÓN: Formato JPEG con calidad al 50%
     const imageData = canvas.toDataURL('image/jpeg', 0.5); 
     
     const { jsPDF } = window.jspdf;
     const orientacion = width > height ? 'l' : 'p'; 
 
-    // Si es la primera hoja, inicializar el PDF. Si no, agregar nueva página.
     if (paginasEscaneadas === 0) {
         pdfDocument = new jsPDF(orientacion, 'px', [width, height]);
         pdfDocument.addImage(imageData, 'JPEG', 0, 0, width, height);
@@ -316,7 +315,7 @@ async function subirPDFMultiPagina() {
 
         const btn = document.getElementById('btn-upload-pdf');
         btn.disabled = true;
-        mostrarMensajeSubida('info', "Generando PDF y subiendo a la nube (Puede tardar unos segundos)...");
+        mostrarMensajeSubida('info', "Generando PDF y subiendo a la nube...");
 
         const pdfBase64 = pdfDocument.output('datauristring');
         const base64Puro = pdfBase64.split(',')[1];
@@ -350,7 +349,6 @@ async function subirPDFMultiPagina() {
         document.getElementById('btn-upload-pdf').disabled = false;
     }
 }
-/* ==================================================== */
 
 async function cargarDatos() {
     try {
