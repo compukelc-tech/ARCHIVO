@@ -2,156 +2,167 @@
 <html lang="es">
 <head>
  <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>COMPUKELC - Sistema de Gestión</title>
+ <!-- Mejora para evitar zoom indeseado al tocar inputs en el celular -->
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+ <title>Sistema de Inventario</title>
  <link rel="stylesheet" href="styles.css">
+ <!-- Librería para crear PDFs desde el cliente -->
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
  <header>
- <h1>COMPUKELC - Sistema de Gestión</h1>
- <div id="user-info" class="hidden">
- <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()"
-style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer;
-color: white;">≡</button>
- <span id="display-user"></span>
- <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
- </div>
+   <h1>Sistema de Inventario</h1>
+   <div id="user-info" class="hidden">
+     <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()" style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: white;">≡</button>
+     <span id="display-user"></span>
+     <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
+   </div>
  </header>
  <main>
- <section id="auth-section">
- <div class="auth-tabs">
- <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar
-Sesión</button>
- <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
- </div>
- <div id="login-box" class="auth-box">
- <h2>Acceso al Sistema</h2>
- <input type="text" id="log-username" placeholder="Usuario Asignado (Ej:
-KELMER1929)" style="text-transform: uppercase;">
- <div class="pass-container">
- <input type="password" id="log-pass" placeholder="Contraseña">
- <button type="button" onclick="togglePass('log-pass')"> </button>
- </div>
- <div class="auth-options">
- <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
- <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
- </div>
- <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
- <p id="login-msg" class="msg"></p>
- </div>
- <div id="register-box" class="auth-box hidden">
- <h2>Nuevo Registro</h2>
- <input type="email" id="reg-email" placeholder="Correo electrónico" required>
- <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
- <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de
-Identidad (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
- <input type="text" id="reg-cargo" placeholder="Cargo" required>
+   <section id="auth-section">
+     <div class="auth-tabs">
+       <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
+       <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
+     </div>
+     
+     <div id="login-box" class="auth-box">
+       <h2>Acceso al Sistema</h2>
+       <input type="text" id="log-username" placeholder="Usuario Asignado" style="text-transform: uppercase;">
+       <div class="pass-container">
+         <input type="password" id="log-pass" placeholder="Contraseña">
+         <button type="button" onclick="togglePass('log-pass')">👁</button>
+       </div>
+       <div class="auth-options">
+         <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
+         <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
+       </div>
+       <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
+       <p id="login-msg" class="msg"></p>
+     </div>
+     
+     <div id="register-box" class="auth-box hidden">
+       <h2>Nuevo Registro</h2>
+       <input type="email" id="reg-email" placeholder="Correo electrónico" required>
+       <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+       <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+       <input type="text" id="reg-cargo" placeholder="Cargo" required>
+       <div class="pass-container">
+         <input type="password" id="reg-pass" placeholder="Contraseña" oninput="validarChecklist()" required>
+         <button type="button" onclick="togglePass('reg-pass')">👁</button>
+       </div>
+       <div class="pass-container">
+         <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
+         <button type="button" onclick="togglePass('reg-pass-conf')">👁</button>
+       </div>
+       <ul id="pass-checklist">
+         <li id="chk-mayus">Al menos una letra mayúscula</li>
+         <li id="chk-num">Al menos un número</li>
+         <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
+         <li id="chk-match">Las contraseñas coinciden</li>
+       </ul>
+       <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Registrar</button>
+       <p id="reg-msg" class="msg"></p>
+     </div>
+   </section>
 
- <div class="pass-container">
- <input type="password" id="reg-pass" placeholder="Contraseña"
-oninput="validarChecklist()" required>
- <button type="button" onclick="togglePass('reg-pass')"> </button>
- </div>
- <div class="pass-container">
- <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña"
-oninput="validarChecklist()" required>
- <button type="button" onclick="togglePass('reg-pass-conf')"> </button>
- </div>
- <ul id="pass-checklist">
- <li id="chk-mayus">Al menos una letra mayúscula</li>
- <li id="chk-num">Al menos un número</li>
- <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
- <li id="chk-match">Las contraseñas coinciden</li>
- </ul>
- <button id="btn-register" onclick="registrarUsuario()" class="btn-primary"
-disabled>Registrar</button>
- <p id="reg-msg" class="msg"></p>
- </div>
- </section>
- <section id="dashboard-section" class="hidden">
- <div class="card">
- <h3>Registro de Documentos</h3>
- <form id="upload-form" onsubmit="procesarFormulario(event)">
- <div class="form-group">
- <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej:
-Proveedores)" required>
- <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas
-2026)" required>
- </div>
- <div class="form-group">
- <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
- <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
- </div>
- <div class="form-group">
- <input type="file" id="file-input" required>
- <button type="submit" id="btn-upload" class="btn-primary">Subir
-Documento</button>
- </div>
- <p id="upload-msg" class="msg"></p>
- </form>
- </div>
- <div class="card">
- <h3>Base de Datos Documental</h3>
- <div class="filters">
- <input type="text" id="search-text" placeholder="Escriba el nombre o año para
-buscar..." oninput="aplicarFiltros()">
- <select id="filter-tema" onchange="aplicarFiltros()">
- <option value="ALL">Filtro por Categoría</option>
- </select>
- </div>
- <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros
-arriba para buscar y visualizar documentos específicos.</p>
- <div class="table-container">
- <table id="data-table">
- <thead></thead>
- <tbody></tbody>
- </table>
- </div>
- </div>
- </section>
+   <section id="dashboard-section" class="hidden">
+     
+     <!-- NUEVA SECCIÓN DE ESCÁNER MÓVIL -->
+     <div class="card">
+       <h3>Escáner de Documentos Físicos</h3>
+       <button type="button" class="btn-primary" onclick="iniciarCamara()">Abrir Cámara Móvil</button>
+       
+       <div id="scanner-container" class="hidden" style="margin-top: 1rem; text-align: center;">
+         <video id="video-preview" autoplay playsinline style="width: 100%; max-width: 400px; border: 2px solid var(--border-color); border-radius: 8px;"></video>
+         <canvas id="canvas-capture" class="hidden"></canvas>
+         
+         <div class="form-group" style="margin-top: 1rem; justify-content: center;">
+           <button type="button" class="btn-primary" onclick="capturarYSubirPDF()" style="background-color: var(--success-color);">Escanear y Subir a Base de Datos</button>
+           <button type="button" class="btn-primary" onclick="detenerCamara()" style="background-color: var(--error-color);">Cancelar</button>
+         </div>
+         <p id="scanner-msg" class="msg"></p>
+       </div>
+     </div>
+
+     <div class="card">
+       <h3>Registro de Documentos Locales</h3>
+       <form id="upload-form" onsubmit="procesarFormulario(event)">
+         <div class="form-group">
+           <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
+           <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas 2026)" required>
+         </div>
+         <div class="form-group">
+           <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
+           <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
+         </div>
+         <div class="form-group">
+           <input type="file" id="file-input" required>
+           <button type="submit" id="btn-upload" class="btn-primary">Subir Documento</button>
+         </div>
+         <p id="upload-msg" class="msg"></p>
+       </form>
+     </div>
+
+     <div class="card">
+       <h3>Base de Datos Documental</h3>
+       <div class="filters">
+         <input type="text" id="search-text" placeholder="Buscar por nombre o año..." oninput="aplicarFiltros()">
+         <select id="filter-tema" onchange="aplicarFiltros()">
+           <option value="ALL">Filtro por Categoría</option>
+         </select>
+       </div>
+       <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros arriba para buscar y visualizar documentos específicos.</p>
+       <div class="table-container">
+         <table id="data-table">
+           <thead></thead>
+           <tbody></tbody>
+         </table>
+       </div>
+     </div>
+   </section>
  </main>
+
  <!-- MODAL DEL PANEL DE ADMINISTRADOR -->
  <div id="admin-modal" class="modal hidden">
- <div class="modal-content">
- <div class="modal-header">
- <h2>Panel de Superadministrador</h2>
- <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
- </div>
-
- <div class="admin-section">
- <h3>Solicitudes Pendientes de Acceso</h3>
- <div class="table-container">
- <table id="table-pendientes">
- <thead>
- <tr>
- <th>Nombre</th>
- <th>Usuario</th>
- <th>Cargo</th>
- <th>Asignar Rol</th>
- <th>Acciones</th>
- </tr>
- </thead>
- <tbody></tbody>
- </table>
- </div>
- </div>
- <div class="admin-section">
- <h3>Gestión de Usuarios Activos</h3>
- <div class="table-container">
- <table id="table-gestionados">
- <thead>
- <tr>
- <th>Nombre</th>
- <th>Usuario</th>
- <th>Estado Actual</th>
- <th>Acciones</th>
- </tr>
- </thead>
- <tbody></tbody>
- </table>
- </div>
- </div>
- </div>
+   <div class="modal-content">
+     <div class="modal-header">
+       <h2>Panel de Superadministrador</h2>
+       <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
+     </div>
+     <div class="admin-section">
+       <h3>Solicitudes Pendientes de Acceso</h3>
+       <div class="table-container">
+         <table id="table-pendientes">
+           <thead>
+             <tr>
+               <th>Nombre</th>
+               <th>Usuario</th>
+               <th>Cargo</th>
+               <th>Asignar Rol</th>
+               <th>Acciones</th>
+             </tr>
+           </thead>
+           <tbody></tbody>
+         </table>
+       </div>
+     </div>
+     <div class="admin-section">
+       <h3>Gestión de Usuarios Activos</h3>
+       <div class="table-container">
+         <table id="table-gestionados">
+           <thead>
+             <tr>
+               <th>Nombre</th>
+               <th>Usuario</th>
+               <th>Estado Actual</th>
+               <th>Acciones</th>
+             </tr>
+           </thead>
+           <tbody></tbody>
+         </table>
+       </div>
+     </div>
+   </div>
  </div>
  <script src="app.js"></script>
 </body>
