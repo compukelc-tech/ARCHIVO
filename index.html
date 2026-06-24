@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Datos Documental</title>
+    <title>COMPUKELC - Sistema de Gestión</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Base de Datos Documental</h1>
+        <h1>COMPUKELC - Sistema de Gestión</h1>
         <div id="user-info" class="hidden">
-            <span id="display-user"></span> | <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
+            <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()" style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: white;">≡</button>
+            <span id="display-user"></span>
+            <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
         </div>
     </header>
 
@@ -29,18 +31,18 @@
                     <button type="button" onclick="togglePass('log-pass')">👁️</button>
                 </div>
                 <div class="auth-options">
-                    <label><input type="checkbox" id="remember-me"> Recordarme</label>
-                    <a href="#" onclick="alert('Contacte al administrador para resetear la clave.')">¿Olvidó su clave?</a>
+                    <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
+                    <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
                 </div>
                 <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
                 <p id="login-msg" class="msg"></p>
             </div>
 
             <div id="register-box" class="auth-box hidden">
-                <h2>Nuevo Usuario</h2>
+                <h2>Nuevo Registro</h2>
                 <input type="email" id="reg-email" placeholder="Correo electrónico" required>
                 <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
-                <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de Identidad (Sin puntos ni letras)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+                <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento de Identidad (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
                 <input type="text" id="reg-cargo" placeholder="Cargo" required>
                 
                 <div class="pass-container">
@@ -51,22 +53,20 @@
                     <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
                     <button type="button" onclick="togglePass('reg-pass-conf')">👁️</button>
                 </div>
-                
                 <ul id="pass-checklist">
-                    <li id="chk-mayus">❌ Al menos una letra mayúscula</li>
-                    <li id="chk-num">❌ Al menos un número</li>
-                    <li id="chk-esp">❌ Al menos un carácter especial (!@#$%^&*)</li>
-                    <li id="chk-match">❌ Las contraseñas coinciden</li>
+                    <li id="chk-mayus">Al menos una letra mayúscula</li>
+                    <li id="chk-num">Al menos un número</li>
+                    <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
+                    <li id="chk-match">Las contraseñas coinciden</li>
                 </ul>
-
-                <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Crear Cuenta</button>
+                <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Registrar</button>
                 <p id="reg-msg" class="msg"></p>
             </div>
         </section>
 
         <section id="dashboard-section" class="hidden">
             <div class="card">
-                <h3>Subir Documento (Carpetas Anidadas)</h3>
+                <h3>Registro de Documentos</h3>
                 <form id="upload-form" onsubmit="procesarFormulario(event)">
                     <div class="form-group">
                         <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
@@ -74,34 +74,77 @@
                     </div>
                     <div class="form-group">
                         <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
-                        <input type="text" id="tema-cat" placeholder="Tema / Categoría" required>
+                        <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
                     </div>
                     <div class="form-group">
                         <input type="file" id="file-input" required>
-                        <button type="submit" id="btn-upload" class="btn-primary">Subir Archivo a Drive</button>
+                        <button type="submit" id="btn-upload" class="btn-primary">Subir Documento</button>
                     </div>
                     <p id="upload-msg" class="msg"></p>
                 </form>
             </div>
 
             <div class="card">
-                <h3>Búsqueda Inteligente</h3>
+                <h3>Base de Datos Documental</h3>
                 <div class="filters">
                     <input type="text" id="search-text" placeholder="Escriba para visualizar documentos..." oninput="aplicarFiltros()">
                     <select id="filter-tema" onchange="aplicarFiltros()">
                         <option value="ALL">Todas las Categorías</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="table-container">
-                <table id="data-table">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
+                <div class="table-container">
+                    <table id="data-table">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
+
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Panel de Superadministrador</h2>
+                <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Solicitudes Pendientes de Acceso</h3>
+                <div class="table-container">
+                    <table id="table-pendientes">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Cargo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Gestión de Usuarios Activos</h3>
+                <div class="table-container">
+                    <table id="table-gestionados">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Estado Actual</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
