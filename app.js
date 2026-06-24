@@ -209,7 +209,6 @@ async function cargarDatos() {
             headers = json.data.headers;
             rawData = json.data.filas;
             extraerCategorias(rawData);
-            // IMPORTANTE: Arrancamos renderizando un array vacío para ocultar los datos iniciales
             renderTabla([]);
         }
     } catch (error) { console.error("Error cargando DB:", error); }
@@ -217,7 +216,6 @@ async function cargarDatos() {
 
 function extraerCategorias(filas) {
     const select = document.getElementById('filter-tema');
-    // Índice 3 corresponde estáticamente a "Tema_Categoria" según nuestra nueva estructura
     const idx = 3; 
 
     const temas = new Set(filas.map(f => f[idx]));
@@ -257,13 +255,12 @@ function aplicarFiltros() {
     const texto = document.getElementById('search-text').value.toLowerCase();
     const temaFiltro = document.getElementById('filter-tema').value;
     
-    // Si no han escrito nada y el filtro está en ALL, se vuelve a esconder todo
     if (texto === '' && temaFiltro === 'ALL') {
         renderTabla([]);
         return;
     }
 
-    const idxTema = 3; // Índice fijo de Tema_Categoria
+    const idxTema = 3; 
 
     const filasFiltradas = rawData.filter(fila => {
         const coincideTexto = texto === '' ? true : fila.some(celda => String(celda).toLowerCase().includes(texto));
@@ -273,8 +270,6 @@ function aplicarFiltros() {
     
     renderTabla(filasFiltradas);
 }
-
-// PANEL DE ADMINISTRACIÓN
 
 function abrirPanelAdmin() {
     document.getElementById('admin-modal').classList.remove('hidden');
@@ -308,14 +303,23 @@ function renderTablaPendientes(usuarios) {
     const tbody = document.querySelector('#table-pendientes tbody');
     tbody.innerHTML = '';
     if(usuarios.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay solicitudes pendientes</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay solicitudes pendientes</td></tr>';
         return;
     }
     usuarios.forEach(usr => {
         tbody.innerHTML += `<tr>
-            <td>${usr.nombre}</td><td><strong>${usr.username}</strong></td><td>${usr.cargo}</td>
+            <td>${usr.nombre}</td>
+            <td><strong>${usr.username}</strong></td>
+            <td>${usr.cargo}</td>
             <td>
-                <button class="btn-action btn-approve" onclick="ejecutarAccionUsuario('${usr.username}', 'Activo')">Activar</button>
+                <select id="rol-${usr.username}">
+                    <option value="Usuario Estándar">Usuario Estándar</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Superadmin">Superadmin</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn-action btn-approve" onclick="aprobarUsuarioConRol('${usr.username}')">Activar</button>
                 <button class="btn-action btn-deny" onclick="ejecutarAccionUsuario('${usr.username}', 'Denegado')">Denegar</button>
             </td></tr>`;
     });
@@ -340,12 +344,24 @@ function renderTablaGestionados(usuarios) {
     });
 }
 
-async function ejecutarAccionUsuario(targetUsername, nuevoEstado) {
+function aprobarUsuarioConRol(targetUsername) {
+    const selectElement = document.getElementById(`rol-${targetUsername}`);
+    const nuevoRol = selectElement.value;
+    ejecutarAccionUsuario(targetUsername, 'Activo', nuevoRol);
+}
+
+async function ejecutarAccionUsuario(targetUsername, nuevoEstado, nuevoRol = null) {
     if (!confirm(`¿Estás seguro de marcar al usuario ${targetUsername} como ${nuevoEstado}?`)) return;
     const adminUser = localStorage.getItem('savedUser');
     
     try {
-        const payload = { action: 'adminGestionUsuario', adminUser: adminUser, targetUser: targetUsername, nuevoEstado: nuevoEstado };
+        const payload = { 
+            action: 'adminGestionUsuario', 
+            adminUser: adminUser, 
+            targetUser: targetUsername, 
+            nuevoEstado: nuevoEstado,
+            nuevoRol: nuevoRol 
+        };
         const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         const json = await response.json();
 
