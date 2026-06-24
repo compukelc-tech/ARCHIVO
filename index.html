@@ -4,8 +4,9 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
  <title>Sistema de Inventario</title>
+ 
+ <link rel="icon" type="image/png" href="./favicon.png">
  <link rel="stylesheet" href="styles.css">
- <!-- Librería para crear PDFs desde el cliente -->
  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
@@ -66,7 +67,6 @@
 
    <section id="dashboard-section" class="hidden">
      
-     <!-- SECCIÓN UNIFICADA DE METADATOS -->
      <div class="card">
        <h3>1. Atributos del Documento</h3>
        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">Defina dónde se guardará el archivo antes de subirlo o escanearlo.</p>
@@ -82,11 +82,9 @@
        </div>
      </div>
 
-     <!-- SECCIÓN UNIFICADA DE CARGA -->
      <div class="card">
        <h3>2. Adjuntar Archivo</h3>
        
-       <!-- Opción A: Subida Local -->
        <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border-color);">
          <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción A: Desde el dispositivo</h4>
          <div class="form-group" style="align-items: center;">
@@ -95,7 +93,6 @@
          </div>
        </div>
 
-       <!-- Opción B: Escáner Multipágina -->
        <div>
          <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción B: Escanear Físico (Multipágina)</h4>
          <button type="button" class="btn-primary" onclick="iniciarCamara()" style="margin-top: 0; background-color: #475569;">Abrir Cámara del Celular</button>
@@ -116,7 +113,6 @@
          </div>
        </div>
 
-       <!-- MENSAJE GLOBAL DE SUBIDA -->
        <div id="upload-msg-container" style="margin-top: 1.5rem; padding: 1rem; border-radius: 4px; text-align: center; font-weight: bold; display: none;">
          <p id="upload-msg"></p>
        </div>
@@ -141,7 +137,6 @@
    </section>
  </main>
 
- <!-- MODAL DEL PANEL DE ADMINISTRADOR -->
  <div id="admin-modal" class="modal hidden">
    <div class="modal-content">
      <div class="modal-header">
