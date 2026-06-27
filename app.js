@@ -518,3 +518,18 @@ async function ejecutarAccionUsuario(targetUsername, nuevoEstado, nuevoRol = nul
         else { alert("Error: " + json.message); }
     } catch (error) { alert("Error de red al ejecutar acción."); }
 }
+
+// ==========================================
+// Registro del Service Worker para PWA
+// ==========================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('ServiceWorker registrado con éxito con el alcance: ', registration.scope);
+      })
+      .catch(err => {
+        console.warn('El registro del ServiceWorker ha fallado: ', err);
+      });
+  });
+}
