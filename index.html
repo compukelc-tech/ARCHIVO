@@ -1,196 +1,213 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- <title>Sistema de archivo</title>
- 
- <link rel="icon" type="image/png" href="./icon.png">
-
- <link rel="manifest" href="./manifest.json">
- 
- <meta name="theme-color" content="#2563eb">
-
- <link rel="apple-touch-icon" href="./icon.png">
- <meta name="apple-mobile-web-app-capable" content="yes">
- <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
- <meta name="apple-mobile-web-app-title" content="Inventario">
-
- <meta name="mobile-web-app-capable" content="yes">
- <meta name="application-name" content="Inventario">
- 
- <link rel="stylesheet" href="styles.css">
- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] -->
+<title>Sistema de archivo</title>
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="manifest" href="./manifest.json">
+<!-- [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] -->
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="./icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventario">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Inventario">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
- <header>
-   <h1>Sistema de Inventario</h1>
-   <div id="user-info" class="hidden">
-     <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()" style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: white;">≡</button>
-     <span id="display-user"></span>
-     <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
-   </div>
- </header>
- <main>
-   <section id="auth-section">
-     <div class="auth-tabs">
-       <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
-       <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
-     </div>
-     
-     <div id="login-box" class="auth-box">
-       <h2>Acceso al Sistema</h2>
-       <input type="text" id="log-username" placeholder="Usuario Asignado" style="text-transform: uppercase;">
-       <div class="pass-container">
-         <input type="password" id="log-pass" placeholder="Contraseña">
-         <button type="button" onclick="togglePass('log-pass')">👁</button>
-       </div>
-       <div class="auth-options">
-         <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
-         <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
-       </div>
-       <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
-       <p id="login-msg" class="msg"></p>
-     </div>
-     
-     <div id="register-box" class="auth-box hidden">
-       <h2>Nuevo Registro</h2>
-       <input type="email" id="reg-email" placeholder="Correo electrónico" required>
-       <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
-       <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
-       <input type="text" id="reg-cargo" placeholder="Cargo" required>
-       <div class="pass-container">
-         <input type="password" id="reg-pass" placeholder="Contraseña" oninput="validarChecklist()" required>
-         <button type="button" onclick="togglePass('reg-pass')">👁</button>
-       </div>
-       <div class="pass-container">
-         <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
-         <button type="button" onclick="togglePass('reg-pass-conf')">👁</button>
-       </div>
-       <ul id="pass-checklist">
-         <li id="chk-mayus">Al menos una letra mayúscula</li>
-         <li id="chk-num">Al menos un número</li>
-         <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
-         <li id="chk-match">Las contraseñas coinciden</li>
-       </ul>
-       <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Registrar</button>
-       <p id="reg-msg" class="msg"></p>
-     </div>
-   </section>
+<header>
+  <!-- [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] -->
+  <h1>Sistema de Inventario</h1>
+  <div id="user-info" class="hidden">
+    <button id="btn-admin-panel" class="hidden" onclick="abrirPanelAdmin()" style="margin-right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: white;">≡</button>
+    <span id="display-user"></span>
+    <button onclick="cerrarSesion()" class="btn-logout">Salir</button>
+  </div>
+</header>
+<main>
+  <section id="auth-section">
+    <div class="auth-tabs">
+      <button onclick="toggleAuth('login')" id="tab-login" class="active">Iniciar Sesión</button>
+      <button onclick="toggleAuth('register')" id="tab-register">Registrarse</button>
+    </div>
 
-   <section id="dashboard-section" class="hidden">
-     
-     <div class="card">
-       <h3>1. Atributos del Documento</h3>
-       <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">Defina dónde se guardará el archivo antes de subirlo o escanearlo.</p>
-       <div id="doc-metadata-form">
-         <div class="form-group">
-           <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
-           <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas 2026)" required>
-         </div>
-         <div class="form-group">
-           <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
-           <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
-         </div>
-       </div>
-     </div>
+    <div id="login-box" class="auth-box">
+      <h2>Acceso al Sistema</h2>
+      <input type="text" id="log-username" placeholder="Usuario Asignado" style="text-transform: uppercase;">
+      <div class="pass-container">
+        <input type="password" id="log-pass" placeholder="Contraseña">
+        <button type="button" onclick="togglePass('log-pass')">👁</button>
+      </div>
+      <div class="auth-options">
+        <label><input type="checkbox" id="remember-me"> Recordar usuario</label>
+        <a href="#" onclick="enviarRecuperacion()">¿Olvidaste tu contraseña?</a>
+      </div>
+      <button onclick="iniciarSesion()" class="btn-primary">Ingresar</button>
+      <p id="login-msg" class="msg"></p>
+    </div>
 
-     <div class="card">
-       <h3>2. Adjuntar Archivo</h3>
-       
-       <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border-color);">
-         <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción A: Desde el dispositivo</h4>
-         <div class="form-group" style="align-items: center;">
-           <input type="file" id="file-input">
-           <button type="button" onclick="procesarSubidaLocal()" id="btn-upload-local" class="btn-primary" style="margin-top: 0;">Subir Archivo Seleccionado</button>
-         </div>
-       </div>
+    <div id="register-box" class="auth-box hidden">
+      <h2>Nuevo Registro</h2>
+      <input type="email" id="reg-email" placeholder="Correo electrónico" required>
+      <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+      <input type="text" inputmode="numeric" id="reg-doc" placeholder="Documento (Sin puntos)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+      <input type="text" id="reg-cargo" placeholder="Cargo" required>
+      <div class="pass-container">
+        <input type="password" id="reg-pass" placeholder="Contraseña" oninput="validarChecklist()" required>
+        <button type="button" onclick="togglePass('reg-pass')">👁</button>
+      </div>
+      <div class="pass-container">
+        <input type="password" id="reg-pass-conf" placeholder="Confirmar Contraseña" oninput="validarChecklist()" required>
+        <button type="button" onclick="togglePass('reg-pass-conf')">👁</button>
+      </div>
+      <ul id="pass-checklist">
+        <li id="chk-mayus">Al menos una letra mayúscula</li>
+        <li id="chk-num">Al menos un número</li>
+        <li id="chk-esp">Al menos un carácter especial (!@#$%^&*)</li>
+        <li id="chk-match">Las contraseñas coinciden</li>
+      </ul>
+      <button id="btn-register" onclick="registrarUsuario()" class="btn-primary" disabled>Registrar</button>
+      <p id="reg-msg" class="msg"></p>
+    </div>
+  </section>
 
-       <div>
-         <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción B: Escanear Físico (Multipágina)</h4>
-         <button type="button" class="btn-primary" onclick="iniciarCamara()" style="margin-top: 0; background-color: #475569;">Abrir Cámara del Celular</button>
-         
-         <div id="scanner-container" class="hidden" style="margin-top: 1rem; text-align: center; background: #f1f5f9; padding: 1rem; border-radius: 8px;">
-           <video id="video-preview" autoplay playsinline style="width: 100%; max-width: 400px; border: 2px solid var(--border-color); border-radius: 8px;"></video>
-           <canvas id="canvas-capture" class="hidden"></canvas>
-           
-           <div style="margin: 1rem 0; font-size: 1.1rem; font-weight: bold; color: var(--text-color);">
-             Páginas escaneadas: <span id="page-count" style="color: var(--primary-color); font-size: 1.3rem;">0</span>
-           </div>
+  <section id="dashboard-section" class="hidden">
+    <div class="card">
+      <h3>1. Atributos del Documento</h3>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">Defina dónde se guardará el archivo antes de subirlo o escanearlo.</p>
+      <div id="doc-metadata-form">
+        <div class="form-group">
+          <!-- [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] -->
+          <input type="text" id="carpeta-padre" placeholder="Carpeta Raíz (Ej: Proveedores)" required>
+          <!-- [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] -->
+          <input type="text" id="sub-carpeta" placeholder="Subcarpeta (Ej: Facturas 2026)" required>
+        </div>
+        <div class="form-group">
+          <input type="number" id="anio-doc" placeholder="Año" value="2026" required>
+          <input type="text" id="tema-cat" placeholder="Tema/Categoría" required>
+        </div>
+      </div>
+    </div>
 
-           <div class="form-group" style="justify-content: center; flex-wrap: wrap;">
-             <button type="button" class="btn-action btn-approve" onclick="capturarPagina()" style="padding: 0.8rem 1.5rem; font-size: 1rem;">📸 Capturar Hoja</button>
-             <button type="button" class="btn-action" onclick="subirPDFMultiPagina()" id="btn-upload-pdf" style="background-color: var(--primary-color); padding: 0.8rem 1.5rem; font-size: 1rem;">☁️ Subir PDF Terminado</button>
-             <button type="button" class="btn-action btn-deny" onclick="detenerCamara()" style="padding: 0.8rem 1.5rem; font-size: 1rem;">❌ Descartar</button>
-           </div>
-         </div>
-       </div>
+    <div class="card">
+      <h3>2. Adjuntar Archivo</h3>
+      <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--border-color);">
+        <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción A: Desde el dispositivo</h4>
+        <div class="form-group" style="align-items: center;">
+          <input type="file" id="file-input">
+          <button type="button" onclick="procesarSubidaLocal()" id="btn-upload-local" class="btn-primary" style="margin-top: 0;">Subir Archivo Seleccionado</button>
+        </div>
+      </div>
 
-       <div id="upload-msg-container" style="margin-top: 1.5rem; padding: 1rem; border-radius: 4px; text-align: center; font-weight: bold; display: none;">
-         <p id="upload-msg"></p>
-       </div>
-     </div>
+      <div>
+        <h4 style="color: var(--primary-color); margin-bottom: 10px;">Opción B: Escanear Físico (Multipágina)</h4>
+        <button type="button" class="btn-primary" onclick="iniciarCamara()" style="margin-top: 0; background-color: #475569;">Abrir Cámara del Celular</button>
 
-     <div class="card">
-       <h3>Base de Datos Documental</h3>
-       <div class="filters">
-         <input type="text" id="search-text" placeholder="Buscar por nombre o año..." oninput="aplicarFiltros()">
-         <select id="filter-tema" onchange="aplicarFiltros()">
-           <option value="ALL">Filtro por Categoría</option>
-         </select>
-       </div>
-       <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros arriba para buscar y visualizar documentos específicos.</p>
-       <div class="table-container">
-         <table id="data-table">
-           <thead></thead>
-           <tbody></tbody>
-         </table>
-       </div>
-     </div>
-   </section>
- </main>
+        <div id="scanner-container" class="hidden" style="margin-top: 1rem; text-align: center; background: #f1f5f9; padding: 1rem; border-radius: 8px;">
+          <video id="video-preview" autoplay playsinline style="width: 100%; max-width: 400px; border: 2px solid var(--border-color); border-radius: 8px;"></video>
+          <canvas id="canvas-capture" class="hidden"></canvas>
+          <div style="margin: 1rem 0; font-size: 1.1rem; font-weight: bold; color: var(--text-color);">
+            Páginas escaneadas: <span id="page-count" style="color: var(--primary-color); font-size: 1.3rem;">0</span>
+          </div>
+          <div class="form-group" style="justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="btn-action btn-approve" onclick="capturarPagina()" style="padding: 0.8rem 1.5rem; font-size: 1rem;">📸 Capturar Hoja</button>
+            <button type="button" class="btn-action" onclick="subirPDFMultiPagina()" id="btn-upload-pdf" style="background-color: var(--primary-color); padding: 0.8rem 1.5rem; font-size: 1rem;">☁️ Subir PDF Terminado</button>
+            <button type="button" class="btn-action btn-deny" onclick="detenerCamara()" style="padding: 0.8rem 1.5rem; font-size: 1rem;">❌ Descartar</button>
+          </div>
+        </div>
+      </div>
+      <div id="upload-msg-container" style="margin-top: 1.5rem; padding: 1rem; border-radius: 4px; text-align: center; font-weight: bold; display: none;">
+        <p id="upload-msg"></p>
+      </div>
+    </div>
 
- <div id="admin-modal" class="modal hidden">
-   <div class="modal-content">
-     <div class="modal-header">
-       <h2>Panel de Superadministrador</h2>
-       <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
-     </div>
-     <div class="admin-section">
-       <h3>Solicitudes Pendientes de Acceso</h3>
-       <div class="table-container">
-         <table id="table-pendientes">
-           <thead>
-             <tr>
-               <th>Nombre</th>
-               <th>Usuario</th>
-               <th>Cargo</th>
-               <th>Asignar Rol</th>
-               <th>Acciones</th>
-             </tr>
-           </thead>
-           <tbody></tbody>
-         </table>
-       </div>
-     </div>
-     <div class="admin-section">
-       <h3>Gestión de Usuarios Activos</h3>
-       <div class="table-container">
-         <table id="table-gestionados">
-           <thead>
-             <tr>
-               <th>Nombre</th>
-               <th>Usuario</th>
-               <th>Estado Actual</th>
-               <th>Acciones</th>
-             </tr>
-           </thead>
-           <tbody></tbody>
-         </table>
-       </div>
-     </div>
-   </div>
- </div>
- <script src="app.js"></script>
+    <div class="card">
+      <h3>Base de Datos Documental</h3>
+      <div class="filters">
+        <input type="text" id="search-text" placeholder="Buscar por nombre o año..." oninput="aplicarFiltros()">
+        <select id="filter-tema" onchange="aplicarFiltros()">
+          <option value="ALL">Filtro por Categoría</option>
+        </select>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">Utilice los filtros arriba para buscar y visualizar documentos específicos.</p>
+      <div class="table-container">
+        <table id="data-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="admin-modal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Panel de Superadministrador</h2>
+      <button onclick="cerrarPanelAdmin()" class="close-btn">X</button>
+    </div>
+    <div class="admin-section">
+      <h3>Solicitudes Pendientes de Acceso</h3>
+      <div class="table-container">
+        <table id="table-pendientes">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Cargo</th>
+              <th>Asignar Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="admin-section">
+      <h3>Gestión de Usuarios Activos</h3>
+      <div class="table-container">
+        <table id="table-gestionados">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Usuario</th>
+              <th>Estado Actual</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO: Modal de cambio de contraseña obligatorio (tras login con clave temporal) -->
+<div id="modal-pass-reset" class="modal hidden">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h2>Cambio de Contraseña Requerido</h2>
+    </div>
+    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">
+      Ingresaste con una contraseña temporal. Por seguridad, debes crear una nueva contraseña definitiva antes de continuar.
+    </p>
+    <div class="pass-container">
+      <input type="password" id="new-pass-1" placeholder="Nueva Contraseña">
+      <button type="button" onclick="togglePass('new-pass-1')">👁</button>
+    </div>
+    <div class="pass-container">
+      <input type="password" id="new-pass-2" placeholder="Confirmar Nueva Contraseña">
+      <button type="button" onclick="togglePass('new-pass-2')">👁</button>
+    </div>
+    <button id="btn-guardar-nueva-pass" onclick="procesarCambioPass()" class="btn-primary">Guardar Nueva Contraseña</button>
+    <p id="reset-pass-msg" class="msg"></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
