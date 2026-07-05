@@ -1,12 +1,13 @@
+// [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] URL del Web App de Google Apps Script generado en el nuevo despliegue
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
+
 let userEmail = null;
 let userName = null;
 let rawData = [];
 let headers = [];
 
-// Variables globales para el escáner multipágina
 let streamGlobal = null;
-let pdfDocument = null; 
+let pdfDocument = null;
 let paginasEscaneadas = 0;
 
 window.onload = () => {
@@ -31,7 +32,7 @@ function togglePass(id) {
 function validarChecklist() {
     const pass = document.getElementById('reg-pass').value;
     const passConf = document.getElementById('reg-pass-conf').value;
-    
+
     const rules = {
         'chk-mayus': /[A-Z]/.test(pass),
         'chk-num': /[0-9]/.test(pass),
@@ -42,7 +43,7 @@ function validarChecklist() {
     let allValid = true;
     for (const [id, isValid] of Object.entries(rules)) {
         const el = document.getElementById(id);
-        if (isValid) { el.classList.add('ok'); } 
+        if (isValid) { el.classList.add('ok'); }
         else { el.classList.remove('ok'); allValid = false; }
     }
     document.getElementById('btn-register').disabled = !allValid;
@@ -104,15 +105,16 @@ async function iniciarSesion() {
             userEmail = json.data.email;
             userName = json.data.nombre;
 
-            document.getElementById('display-user').textContent = `Usuario: ${userName}`;
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('user-info').classList.remove('hidden');
-            document.getElementById('dashboard-section').classList.remove('hidden');
-
-            if(json.data.rol === 'Superadmin') {
-                document.getElementById('btn-admin-panel').classList.remove('hidden');
+            // NUEVO: si el backend indica que la contraseña es temporal, se fuerza el cambio
+            // antes de mostrar el dashboard. La contraseña actual queda guardada temporalmente
+            // en memoria (tempOldPass) solo para validar el cambio, nunca se persiste.
+            if (json.data.requiereCambio) {
+                tempOldPass = password;
+                tempUsername = username;
+                document.getElementById('modal-pass-reset').classList.remove('hidden');
+            } else {
+                completarLogin(json.data.rol);
             }
-            cargarDatos();
         } else { throw new Error(json.message); }
     } catch (error) {
         msgLabel.style.color = "var(--error-color)";
@@ -120,22 +122,95 @@ async function iniciarSesion() {
     }
 }
 
-async function enviarRecuperacion() {
-    const email = prompt("Ingresa tu correo electrónico registrado:");
-    if(!email) return;
+// Variables temporales usadas únicamente durante el flujo de cambio de contraseña obligatorio
+let tempOldPass = null;
+let tempUsername = null;
+
+function completarLogin(rol) {
+    document.getElementById('display-user').textContent = `Usuario: ${userName}`;
+    document.getElementById('auth-section').classList.add('hidden');
+    document.getElementById('user-info').classList.remove('hidden');
+    document.getElementById('dashboard-section').classList.remove('hidden');
+
+    if (rol === 'Superadmin') {
+        document.getElementById('btn-admin-panel').classList.remove('hidden');
+    }
+    cargarDatos();
+}
+
+async function procesarCambioPass() {
+    const newP1 = document.getElementById('new-pass-1').value;
+    const newP2 = document.getElementById('new-pass-2').value;
+    const msg = document.getElementById('reset-pass-msg');
+
+    if (!newP1 || !newP2) {
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Completa ambos campos.";
+        return;
+    }
+    if (newP1 !== newP2) {
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Las contraseñas no coinciden.";
+        return;
+    }
+    if (!/[A-Z]/.test(newP1) || !/[0-9]/.test(newP1)) {
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Debe incluir al menos una mayúscula y un número.";
+        return;
+    }
+
+    const btn = document.getElementById('btn-guardar-nueva-pass');
+    btn.disabled = true;
+    msg.style.color = "var(--text-color)";
+    msg.textContent = "Actualizando...";
 
     try {
-        const payload = { action: 'recuperarPassword', email: email }; 
+        const payload = {
+            action: 'cambiarPassword',
+            username: tempUsername,
+            oldPassword: tempOldPass,
+            newPassword: newP1
+        };
         const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         const json = await response.json();
 
-        if(json.status === 'success') {
+        if (json.status === 'success') {
+            msg.style.color = "var(--success-color)";
+            msg.textContent = "¡Contraseña actualizada!";
+            tempOldPass = null;
+            tempUsername = null;
+            document.getElementById('new-pass-1').value = '';
+            document.getElementById('new-pass-2').value = '';
+            setTimeout(() => {
+                document.getElementById('modal-pass-reset').classList.add('hidden');
+                msg.textContent = '';
+                completarLogin(localStorage.getItem('userRole'));
+            }, 1200);
+        } else { throw new Error(json.message); }
+    } catch (error) {
+        msg.style.color = "var(--error-color)";
+        msg.textContent = "Error: " + error.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function enviarRecuperacion() {
+    const email = prompt("Ingresa tu correo electrónico registrado:");
+    if (!email) return;
+
+    try {
+        const payload = { action: 'recuperarPassword', email: email };
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if (json.status === 'success') {
             alert("Si el correo existe en el sistema, te hemos enviado tus credenciales de acceso.");
-        } else { 
-            alert("Error: " + json.message); 
+        } else {
+            alert("Error: " + json.message);
         }
-    } catch (err) { 
-        alert("Error de red al intentar recuperar."); 
+    } catch (err) {
+        alert("Error de red al intentar recuperar.");
     }
 }
 
@@ -148,10 +223,9 @@ function cerrarSesion() {
     document.getElementById('login-msg').textContent = '';
     document.getElementById('log-pass').value = '';
     localStorage.removeItem('userRole');
-    detenerCamara(); 
+    detenerCamara();
 }
 
-/* ====== VALIDACIÓN COMPARTIDA DE METADATOS ====== */
 function obtenerMetadatosFormulario() {
     const carpeta = document.getElementById('carpeta-padre').value.trim();
     const subCarpeta = document.getElementById('sub-carpeta').value.trim();
@@ -168,7 +242,7 @@ function mostrarMensajeSubida(tipo, texto) {
     const container = document.getElementById('upload-msg-container');
     const msg = document.getElementById('upload-msg');
     container.style.display = 'block';
-    
+
     if (tipo === 'exito') {
         container.style.backgroundColor = '#dcfce7';
         msg.style.color = 'var(--success-color)';
@@ -182,12 +256,11 @@ function mostrarMensajeSubida(tipo, texto) {
     msg.textContent = texto;
 }
 
-/* ====== LÓGICA DE SUBIDA LOCAL (OPCIÓN A) ====== */
 async function procesarSubidaLocal() {
     try {
         const meta = obtenerMetadatosFormulario();
         const fileInput = document.getElementById('file-input');
-        
+
         if (fileInput.files.length === 0) {
             throw new Error("Selecciona un archivo desde tu dispositivo.");
         }
@@ -198,7 +271,7 @@ async function procesarSubidaLocal() {
         mostrarMensajeSubida('info', "Preparando y subiendo archivo local...");
 
         const base64Data = await fileToBase64(file);
-        
+
         const payload = {
             action: 'subirArchivo',
             email: userEmail,
@@ -216,7 +289,7 @@ async function procesarSubidaLocal() {
 
         if (json.status === 'success') {
             mostrarMensajeSubida('exito', "¡Archivo local guardado exitosamente en la Base de Datos!");
-            fileInput.value = ""; // Limpiar input
+            fileInput.value = "";
             cargarDatos();
         } else { throw new Error(json.message); }
     } catch (error) {
@@ -235,19 +308,17 @@ function fileToBase64(file) {
     });
 }
 
-/* ====== LÓGICA DEL ESCÁNER MÓVIL (OPCIÓN B) ====== */
 async function iniciarCamara() {
     document.getElementById('scanner-container').classList.remove('hidden');
     const video = document.getElementById('video-preview');
-    
-    // Reiniciar valores multipágina
+
     pdfDocument = null;
     paginasEscaneadas = 0;
     document.getElementById('page-count').textContent = paginasEscaneadas;
     document.getElementById('upload-msg-container').style.display = 'none';
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
+        const stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment' }
         });
         video.srcObject = stream;
@@ -268,15 +339,14 @@ function detenerCamara() {
 
 function capturarPagina() {
     if (!streamGlobal) return;
-    
+
     const video = document.getElementById('video-preview');
     const canvas = document.getElementById('canvas-capture');
-    
-    // COMPRESIÓN: Limitar resolución máxima
-    const MAX_WIDTH = 1200; 
+
+    const MAX_WIDTH = 1200;
     let width = video.videoWidth;
     let height = video.videoHeight;
-    
+
     if (width > MAX_WIDTH) {
         height = Math.floor(height * (MAX_WIDTH / width));
         width = MAX_WIDTH;
@@ -286,12 +356,11 @@ function capturarPagina() {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, width, height);
-    
-    // COMPRESIÓN: Formato JPEG con calidad al 50%
-    const imageData = canvas.toDataURL('image/jpeg', 0.5); 
-    
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.5);
+
     const { jsPDF } = window.jspdf;
-    const orientacion = width > height ? 'l' : 'p'; 
+    const orientacion = width > height ? 'l' : 'p';
 
     if (paginasEscaneadas === 0) {
         pdfDocument = new jsPDF(orientacion, 'px', [width, height]);
@@ -308,7 +377,7 @@ function capturarPagina() {
 async function subirPDFMultiPagina() {
     try {
         const meta = obtenerMetadatosFormulario();
-        
+
         if (paginasEscaneadas === 0 || !pdfDocument) {
             throw new Error("No has capturado ninguna página aún. Usa 'Capturar Hoja'.");
         }
@@ -365,12 +434,12 @@ async function cargarDatos() {
 
 function extraerCategorias(filas) {
     const select = document.getElementById('filter-tema');
-    const idx = 3; 
+    const idx = 3;
 
     const temas = new Set(filas.map(f => f[idx]));
     select.innerHTML = '<option value="ALL">Filtro por Categoría</option>';
     temas.forEach(tema => {
-        if(tema) select.innerHTML += `<option value="${tema}">${tema}</option>`;
+        if (tema) select.innerHTML += `<option value="${tema}">${tema}</option>`;
     });
 }
 
@@ -382,12 +451,12 @@ function renderTabla(filas) {
     if (headers.length === 0) return;
 
     thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-    
-    if(filas.length === 0) {
+
+    if (filas.length === 0) {
         tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align: center; color: gray;">Use la barra de búsqueda o el filtro para encontrar documentos.</td></tr>`;
         return;
     }
-    
+
     filas.forEach(fila => {
         const tr = document.createElement('tr');
         tr.innerHTML = fila.map(celda => {
@@ -403,20 +472,20 @@ function renderTabla(filas) {
 function aplicarFiltros() {
     const texto = document.getElementById('search-text').value.toLowerCase();
     const temaFiltro = document.getElementById('filter-tema').value;
-    
+
     if (texto === '' && temaFiltro === 'ALL') {
         renderTabla([]);
         return;
     }
 
-    const idxTema = 3; 
+    const idxTema = 3;
 
     const filasFiltradas = rawData.filter(fila => {
         const coincideTexto = texto === '' ? true : fila.some(celda => String(celda).toLowerCase().includes(texto));
         const coincideTema = temaFiltro === 'ALL' || String(fila[idxTema]) === temaFiltro;
         return coincideTexto && coincideTema;
     });
-    
+
     renderTabla(filasFiltradas);
 }
 
@@ -438,9 +507,9 @@ async function cargarUsuariosAdmin() {
             method: 'POST',
             body: JSON.stringify({ action: 'getUsuariosAdmin', adminUser: adminUser })
         });
-        
+
         const json = await response.json();
-        
+
         if (json.status === 'success') {
             renderTablaPendientes(json.data.pendientes);
             renderTablaGestionados(json.data.gestionados);
@@ -451,7 +520,7 @@ async function cargarUsuariosAdmin() {
 function renderTablaPendientes(usuarios) {
     const tbody = document.querySelector('#table-pendientes tbody');
     tbody.innerHTML = '';
-    if(usuarios.length === 0) {
+    if (usuarios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay solicitudes pendientes</td></tr>';
         return;
     }
@@ -477,7 +546,7 @@ function renderTablaPendientes(usuarios) {
 function renderTablaGestionados(usuarios) {
     const tbody = document.querySelector('#table-gestionados tbody');
     tbody.innerHTML = '';
-    if(usuarios.length === 0) {
+    if (usuarios.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay usuarios activos gestionados</td></tr>';
         return;
     }
@@ -502,28 +571,26 @@ function aprobarUsuarioConRol(targetUsername) {
 async function ejecutarAccionUsuario(targetUsername, nuevoEstado, nuevoRol = null) {
     if (!confirm(`¿Estás seguro de marcar al usuario ${targetUsername} como ${nuevoEstado}?`)) return;
     const adminUser = localStorage.getItem('savedUser');
-    
+
     try {
-        const payload = { 
-            action: 'adminGestionUsuario', 
-            adminUser: adminUser, 
-            targetUser: targetUsername, 
+        const payload = {
+            action: 'adminGestionUsuario',
+            adminUser: adminUser,
+            targetUser: targetUsername,
             nuevoEstado: nuevoEstado,
-            nuevoRol: nuevoRol 
+            nuevoRol: nuevoRol
         };
         const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         const json = await response.json();
 
-        if(json.status === 'success') { cargarUsuariosAdmin(); } 
+        if (json.status === 'success') { cargarUsuariosAdmin(); }
         else { alert("Error: " + json.message); }
     } catch (error) { alert("Error de red al ejecutar acción."); }
 }
 
-// ==========================================
-// Registro del Service Worker para PWA
-// ==========================================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] Validar ruta del sw.js
     navigator.serviceWorker.register('./sw.js')
       .then(registration => {
         console.log('ServiceWorker registrado con éxito con el alcance: ', registration.scope);
