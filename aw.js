@@ -1,4 +1,7 @@
+// [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] Actualizar nombre y versión de caché
 const CACHE_NAME = 'inventario-cache-v2';
+
+// [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] Validar rutas
 const urlsToCache = [
   './',
   './index.html',
@@ -7,7 +10,6 @@ const urlsToCache = [
   './icon.png'
 ];
 
-// Instalar el Service Worker y cachear los recursos estáticos
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -18,7 +20,6 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// Activar y limpiar cachés antiguos (Esto arreglará el problema visual)
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
@@ -35,7 +36,6 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Interceptar peticiones y servir desde la caché si es posible
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
