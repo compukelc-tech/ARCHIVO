@@ -1,5 +1,3 @@
-
-JavaScript
 // [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] URL del Web App de Google Apps Script generado en el nuevo despliegue
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQQ6ciE1IvS2L_wUVHKrVGSomxEOZAb8SU6MgfLBX9oia2hde2HrkCPpgHxTfP3zUO/exec';
 
@@ -528,5 +526,3 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
-
