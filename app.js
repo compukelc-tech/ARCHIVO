@@ -7,7 +7,7 @@ let rawData = [];
 let headers = [];
 
 let streamGlobal = null;
-let pdfDocument = null; 
+let imagenesCapturadas = []; 
 let paginasEscaneadas = 0;
 
 window.onload = () => {
@@ -238,10 +238,14 @@ async function iniciarCamara() {
     document.getElementById('scanner-container').classList.remove('hidden');
     const video = document.getElementById('video-preview');
     
-    pdfDocument = null;
+    // Reiniciar variables
+    imagenesCapturadas = [];
     paginasEscaneadas = 0;
     document.getElementById('page-count').textContent = paginasEscaneadas;
     document.getElementById('upload-msg-container').style.display = 'none';
+    
+    // Asegurarse de que el botón de foto esté oculto al iniciar hasta tomar la 1ra foto
+    document.getElementById('btn-upload-foto').style.display = 'none';
 
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -259,7 +263,7 @@ function detenerCamara() {
         streamGlobal.getTracks().forEach(track => track.stop());
     }
     document.getElementById('scanner-container').classList.add('hidden');
-    pdfDocument = null;
+    imagenesCapturadas = []; 
     paginasEscaneadas = 0;
 }
 
@@ -283,28 +287,77 @@ function capturarPagina() {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, width, height);
     
-    const imageData = canvas.toDataURL('image/jpeg', 0.5); 
-    
-    const { jsPDF } = window.jspdf;
+    const imageData = canvas.toDataURL('image/jpeg', 0.8); 
     const orientacion = width > height ? 'l' : 'p'; 
 
-    if (paginasEscaneadas === 0) {
-        pdfDocument = new jsPDF(orientacion, 'px', [width, height]);
-        pdfDocument.addImage(imageData, 'JPEG', 0, 0, width, height);
-    } else {
-        pdfDocument.addPage([width, height], orientacion);
-        pdfDocument.addImage(imageData, 'JPEG', 0, 0, width, height);
-    }
+    imagenesCapturadas.push({
+        data: imageData,
+        width: width,
+        height: height,
+        orientation: orientacion
+    });
 
     paginasEscaneadas++;
     document.getElementById('page-count').textContent = paginasEscaneadas;
+
+    // Mostrar el botón de foto si hay exactamente 1 hoja. Si hay más, ocultarlo.
+    if(paginasEscaneadas === 1) {
+        document.getElementById('btn-upload-foto').style.display = 'inline-block';
+    } else {
+        document.getElementById('btn-upload-foto').style.display = 'none';
+    }
+}
+
+async function subirFoto() {
+    try {
+        const meta = obtenerMetadatosFormulario();
+        
+        if (imagenesCapturadas.length === 0) {
+            throw new Error("No has capturado ninguna foto aún. Usa 'Capturar Hoja'.");
+        }
+
+        const btn = document.getElementById('btn-upload-foto');
+        btn.disabled = true;
+        mostrarMensajeSubida('info', "Subiendo foto a la nube...");
+
+        const imgData = imagenesCapturadas[0].data;
+        const base64Puro = imgData.split(',')[1];
+        const fileName = `Foto_Escaneada_${new Date().getTime()}.jpg`;
+
+        const payload = {
+            action: 'subirArchivo',
+            email: userEmail,
+            carpetaPadre: meta.carpeta,
+            subCarpeta: meta.subCarpeta,
+            anio: meta.anio,
+            temaCategoria: meta.tema,
+            fileName: fileName,
+            mimeType: 'image/jpeg',
+            fileData: base64Puro
+        };
+
+        const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const json = await response.json();
+
+        if (json.status === 'success') {
+            mostrarMensajeSubida('exito', `¡Foto guardada exitosamente!`);
+            cargarDatos();
+            setTimeout(detenerCamara, 3000);
+        } else {
+            throw new Error(json.message);
+        }
+    } catch (error) {
+        mostrarMensajeSubida('error', "Error: " + error.message);
+    } finally {
+        document.getElementById('btn-upload-foto').disabled = false;
+    }
 }
 
 async function subirPDFMultiPagina() {
     try {
         const meta = obtenerMetadatosFormulario();
         
-        if (paginasEscaneadas === 0 || !pdfDocument) {
+        if (imagenesCapturadas.length === 0) {
             throw new Error("No has capturado ninguna página aún. Usa 'Capturar Hoja'.");
         }
 
@@ -312,7 +365,26 @@ async function subirPDFMultiPagina() {
         btn.disabled = true;
         mostrarMensajeSubida('info', "Generando PDF y subiendo a la nube...");
 
-        const pdfBase64 = pdfDocument.output('datauristring');
+        const { jsPDF } = window.jspdf;
+        let pdfDoc;
+
+        for (let i = 0; i < imagenesCapturadas.length; i++) {
+            const img = imagenesCapturadas[i];
+            
+            if (i === 0) {
+                pdfDoc = new jsPDF({
+                    orientation: img.orientation,
+                    unit: 'px',
+                    format: [img.width, img.height]
+                });
+            } else {
+                pdfDoc.addPage([img.width, img.height], img.orientation);
+            }
+            
+            pdfDoc.addImage(img.data, 'JPEG', 0, 0, img.width, img.height);
+        }
+
+        const pdfBase64 = pdfDoc.output('datauristring');
         const base64Puro = pdfBase64.split(',')[1];
         const fileName = `Documento_Escaneado_${new Date().getTime()}.pdf`;
 
