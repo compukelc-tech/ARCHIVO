@@ -1,5 +1,5 @@
 // [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] Actualizar nombre y versión de caché
-const CACHE_NAME = 'inventario-cache-v3';
+const CACHE_NAME = 'inventario-cache-v4';
 
 // [CAMBIO REQUERIDO: NUEVO CLIENTE/BD] Validar rutas
 const urlsToCache = [
